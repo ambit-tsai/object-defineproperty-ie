@@ -1,0 +1,26 @@
+{
+  "name": "object-defineproperty-ie",
+  "version": "1.0.0",
+  "description": "A Object.defineProperty sham based on VBScript for IE",
+  "main": "src/object-defineproperty-ie.js",
+  "scripts": {
+    "build": "uglifyjs src/object-defineproperty-ie.js -c -m --ie8 --comments -o dist/object-defineproperty-ie.js"
+  },
+  "keywords": [
+    "defineproperty",
+    "defineproperties",
+    "ie",
+    "object",
+    "vbscript",
+    "vbs"
+  ],
+  "author": "ambit_tsai@qq.com",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambit-tsai/object-defineproperty-ie.git"
+  },
+  "devDependencies": {
+    "uglify-js": "^3.4.9"
+  }
+}
