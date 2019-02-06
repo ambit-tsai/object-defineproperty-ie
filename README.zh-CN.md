@@ -20,8 +20,10 @@
 ```html
 <script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var obj = { number: 123 };
-    Object.defineProperties(obj, {
+    var oldObj = {
+        number: 123
+    };
+    var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
                 return 'trigger `getter`';
