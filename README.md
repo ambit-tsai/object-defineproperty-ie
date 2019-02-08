@@ -1,12 +1,12 @@
 <a href="README.zh-CN.md">简体中文</a> | English
 
 # `Object.defineProperty` Sham For IE
-A `Object.defineProperty` sham based on **VBScript** for IE.
+A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `Object.defineProperties`, `Object.getOwnPropertyDescriptor`, `Object.getOwnPropertyDescriptors`.
 
 
 #### Notice
-1. Use native `Object.defineProperty` for `Element` object in IE8;
-1. In other case, the method will return a new VB object;
+1. Use native method for `Element` object in IE8;
+1. In other case, `Object.defineProperty` will return a new VB object;
 1. VB object can not add and delete properties;
 
 
@@ -38,6 +38,8 @@ A `Object.defineProperty` sham based on **VBScript** for IE.
             writable: false
         }
     });
+
+    Object.getOwnPropertyDescriptor(newObj, 'number');
 </script>
 ```
 

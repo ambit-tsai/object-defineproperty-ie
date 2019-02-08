@@ -32,11 +32,11 @@
             },
             string: {
                 value: 'Ambit Tsai',
-                writable: false
+                writable: true
             },
             boolean: {
-                value: true,
-                writable: false
+                value: false,
+                writable: true
             },
             'undefined': {
                 value: undefined,
@@ -62,6 +62,9 @@
         newObj.setter = 6;
         console.log('Old Object:', oldObj);
         console.log('New Object:', newObj);
+
+        var descMap = Object.getOwnPropertyDescriptors(newObj);
+        console.log('Descriptor `number`:', descMap.number);
     </script>
 </body>
 </html>

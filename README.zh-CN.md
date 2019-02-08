@@ -2,12 +2,12 @@
 
 
 # `Object.defineProperty` Sham For IE
-一个 `Object.defineProperty` 的 IE 补丁，基于 VBScript 实现。
+一个 `Object.defineProperty` 的 IE 补丁，基于 VBScript 实现。它还提供了`Object.defineProperties`、`Object.getOwnPropertyDescriptor`、`Object.getOwnPropertyDescriptors`等方法。
 
 
 #### 注意
-1. 在 IE8 下，对于 `Element` 对象将调用原生的 `Object.defineProperty` ；
-1. 其他情况下，该方法将会返回一个新的 VB 对象；
+1. 在 IE8 中，对于 `Element` 对象将调用原生的方法；
+1. 其他情况下，`Object.defineProperty` 将会返回一个新的 VB 对象；
 1. VB 对象不能随意增删属性;
 
 
@@ -39,6 +39,8 @@
             writable: false
         }
     });
+
+    Object.getOwnPropertyDescriptor(newObj, 'number');
 </script>
 ```
 
