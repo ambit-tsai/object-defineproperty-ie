@@ -1,6 +1,6 @@
 {
   "name": "object-defineproperty-ie",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A Object.defineProperty sham based on VBScript for IE",
   "main": "src/object-defineproperty-ie.js",
   "scripts": {

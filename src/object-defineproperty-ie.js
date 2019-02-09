@@ -1,6 +1,6 @@
 /**
  * Object.defineProperty Sham For IE
- * @version 1.1.0
+ * @version 1.1.1
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/object-defineproperty-ie}
@@ -81,12 +81,13 @@
         for (var prop in props) {
             if (has(props, prop)) {
                 var desc = props[prop];
+                checkDescriptor(desc);
                 if (has(descMap, prop)) {
                     assign(descMap[prop], desc);
                 } else {
                     descMap[prop] = desc;
                 }
-                checkDescriptor(descMap[prop]);
+                setDefaultDescriptor(descMap[prop]);
             }
         }
 
@@ -95,7 +96,7 @@
         window.execScript(script, 'VBS');
         obj = window['VB_factory_' + uid](); // call factory function
         setInitialValue(obj, descMap);
-        window.VB_cache[uid] = {
+        window.VB_cache[uid] = {    // cache
             obj: obj,
             desc: descMap
         };
@@ -125,18 +126,26 @@
         if (('value' in desc || 'writable' in desc) && ('get' in desc || 'set' in desc)) {
             throw new TypeError('Invalid property descriptor');
         }
+        if ('get' in desc && typeof desc.get !== 'function' && desc.get !== undefined) {
+            throw new TypeError('Getter must be a function');
+        }
+        if ('set' in desc && typeof desc.set !== 'function' && desc.set !== undefined) {
+            throw new TypeError('Setter must be a function');
+        }
+    }
+
+
+    /**
+     * Set default descriptor
+     * @param {Object} desc
+     */
+    function setDefaultDescriptor(desc) {
         if ('value' in desc || 'writable' in desc) {
             if (!('value' in desc)) {
                 desc.value = undefined;
             }
             desc.writable = !!desc.writable;
         } else if ('get' in desc || 'set' in desc) {
-            if (typeof desc.get !== 'function' && desc.get !== undefined) {
-                throw new TypeError('Getter must be a function');
-            }
-            if (typeof desc.set !== 'function' && desc.set !== undefined) {
-                throw new TypeError('Setter must be a function');
-            }
             desc.get = desc.get || undefined;
             desc.set = desc.set || undefined;
         } else {
@@ -152,6 +161,7 @@
      * Merge object properties
      * @param {Object} target 
      * @param {Object} source 
+     * @returns {Object}
      */
     function assign(target, source) {
         for (var prop in source) {
