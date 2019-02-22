@@ -1,11 +1,11 @@
 /**
  * Object.defineProperty Sham For IE
- * @version 1.1.1
+ * @version 1.1.2
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/object-defineproperty-ie}
  */
-(function (window, Object) {
+(function (window, Object, undefined) {
     if (!Object.defineProperties) {
         // Global variable
         window.VB_cache = {};
@@ -38,14 +38,14 @@
             if (getOwnPropertyDescriptor && obj instanceof Element) {
                 return getOwnPropertyDescriptor(obj, prop);
             }
-            // VB object
-            for (var uid in VB_cache) {
-                if (VB_cache[uid].obj === obj) {
-                    var desc = VB_cache[uid].desc[prop];
+            // The cached VB object
+            for (var uid in window.VB_cache) {
+                if (window.VB_cache[uid].obj === obj) {
+                    var desc = window.VB_cache[uid].desc[prop];
                     return desc && assign({}, desc);
                 }
             }
-            // JavaScript object
+            // Others
             return has(obj, prop) ? {
                 configurable: true,
                 enumerable: true,
@@ -71,9 +71,9 @@
 
     /**
      * Create a VB Object
-     * @param {Object} obj 
-     * @param {Object} props 
-     * @returns {Object} VB object
+     * @param {object} obj 
+     * @param {object} props 
+     * @returns {object} VB object
      */
     function createVbObject(obj, props) {
         // Collect descriptors
@@ -106,9 +106,9 @@
 
     /**
      * Determine whether an object has a specified own property
-     * @param {Object} obj 
-     * @param {String} prop 
-     * @returns {Boolean}
+     * @param {object} obj 
+     * @param {string} prop 
+     * @returns {boolean}
      */
     function has(obj, prop) {
         return Object.prototype.hasOwnProperty.call(obj, prop);
@@ -117,7 +117,7 @@
 
     /**
      * Check descriptor
-     * @param {Object} desc  
+     * @param {object} desc 
      */
     function checkDescriptor(desc) {
         if (!(desc instanceof Object)) {
@@ -137,7 +137,7 @@
 
     /**
      * Set default descriptor
-     * @param {Object} desc
+     * @param {object} desc
      */
     function setDefaultDescriptor(desc) {
         if ('value' in desc || 'writable' in desc) {
@@ -159,9 +159,9 @@
 
     /**
      * Merge object properties
-     * @param {Object} target 
-     * @param {Object} source 
-     * @returns {Object}
+     * @param {object} target 
+     * @param {object} source 
+     * @returns {object}
      */
     function assign(target, source) {
         for (var prop in source) {
@@ -181,9 +181,9 @@
 
     /**
      * Generate VB script
-     * @param {Object} descMap 
-     * @param {Number} uid
-     * @returns {String} VB script 
+     * @param {object} descMap 
+     * @param {number} uid
+     * @returns {string} VB script 
      */
     function generateVbScript(descMap, uid) {
         var buffer = [
@@ -196,7 +196,7 @@
                     buffer.push('  Public [' + prop + ']');
                 } else {
                     var str = '    ';
-                    if (desc.value instanceof Object) {
+                    if (desc.value && (typeof desc.value === 'object' || typeof desc.value === 'function')) {
                         str += 'Set '; // use `Set` for object
                     }
                     str += '[' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].value';
@@ -261,8 +261,8 @@
     
     /**
      * Set initial value
-     * @param {Object} obj 
-     * @param {Object} props 
+     * @param {object} obj 
+     * @param {object} props 
      */
     function setInitialValue(obj, props) {
         for (var prop in props) {
