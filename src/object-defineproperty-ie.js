@@ -91,7 +91,7 @@
             }
         }
 
-        var uid = window.setTimeout(noop); // generate an unique id
+        var uid = window.setTimeout(function () {}); // generate an unique id
         var script = generateVbScript(descMap, uid);
         window.execScript(script, 'VBS');
         obj = window['VB_factory_' + uid](); // call factory function
@@ -171,12 +171,6 @@
         }
         return target;
     }
-
-
-    /**
-     * No operation
-     */
-    function noop() {}
 
 
     /**
