@@ -21,9 +21,12 @@
 ```html
 <script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var oldObj = {
-        number: 123
-    };
+    var oldObj = Object.defineProperty({}, 'string', {
+        value: 'Ambit Tsai',
+        enumerable: true
+    });
+    // oldObj => {string: "Ambit Tsai"}
+
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
@@ -34,14 +37,21 @@
             set: function () {
                 alert('trigger `setter`');
             }
-        },
-        string: {
-            value: 'Ambit Tsai',
-            writable: false
         }
     });
+    // newObj => {
+    //     getter: "trigger `getter`",
+    //     setter: undefined,
+    //     string: "Ambit Tsai"
+    // }
 
-    Object.getOwnPropertyDescriptor(newObj, 'number');
+    var desc = Object.getOwnPropertyDescriptor(newObj, 'string');
+    // desc => {
+    //     configurable: false,
+    //     enumerable: true,
+    //     value: "Ambit Tsai",
+    //     writable: false
+    // }
 </script>
 ```
 
