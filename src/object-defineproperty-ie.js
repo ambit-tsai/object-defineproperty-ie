@@ -80,14 +80,11 @@
         var descMap = Object.getOwnPropertyDescriptors(obj);
         for (var prop in props) {
             if (has(props, prop)) {
-                var desc = props[prop];
-                checkDescriptor(desc);
-                if (has(descMap, prop)) {
-                    assign(descMap[prop], desc);
-                } else {
-                    descMap[prop] = desc;
+                checkDescriptor(props[prop]);
+                if (descMap[prop] && !descMap[prop].configurable) {
+                    throwTypeError('Cannot redefine property: ' + prop);
                 }
-                setDefaultDescriptor(descMap[prop]);
+                descMap[prop] = generateDescriptor(descMap[prop], props[prop]);
             }
         }
 
@@ -121,39 +118,66 @@
      */
     function checkDescriptor(desc) {
         if (!(desc instanceof Object)) {
-            throw new TypeError('Property description must be an object');
+            throwTypeError('Property description must be an object');
         }
         if (('value' in desc || 'writable' in desc) && ('get' in desc || 'set' in desc)) {
-            throw new TypeError('Invalid property descriptor');
+            throwTypeError('Invalid property descriptor. Cannot both specify accessors and a value or writable attribute');
         }
         if ('get' in desc && typeof desc.get !== 'function' && desc.get !== undefined) {
-            throw new TypeError('Getter must be a function');
+            throwTypeError('Getter must be a function');
         }
         if ('set' in desc && typeof desc.set !== 'function' && desc.set !== undefined) {
-            throw new TypeError('Setter must be a function');
+            throwTypeError('Setter must be a function');
         }
     }
 
 
     /**
-     * Set default descriptor
-     * @param {object} desc
+     * Throw a type error
+     * @param {string} message 
      */
-    function setDefaultDescriptor(desc) {
-        if ('value' in desc || 'writable' in desc) {
-            if (!('value' in desc)) {
-                desc.value = undefined;
+    function throwTypeError(message) {
+        throw new TypeError(message);
+    }
+
+
+    /**
+     * Generate descriptor
+     * @param {object} oldDesc 
+     * @param {object} newDesc 
+     * @returns {object} 
+     */
+    function generateDescriptor(oldDesc, newDesc) {
+        var desc;
+        if (oldDesc) {
+            desc = assign({}, oldDesc);
+            if ('value' in newDesc || 'writable' in newDesc) {
+                delete desc.get;
+                delete desc.set;
+            } else if ('get' in newDesc || 'set' in newDesc) {
+                delete desc.value;
+                delete desc.writable;
             }
-            desc.writable = !!desc.writable;
-        } else if ('get' in desc || 'set' in desc) {
-            desc.get = desc.get || undefined;
-            desc.set = desc.set || undefined;
         } else {
-            desc.value = undefined;
-            desc.writable = false;
+            desc = {
+                configurable: false,
+                enumerable: false
+            };
         }
-        desc.configurable = !!desc.configurable;
-        desc.enumerable = !!desc.enumerable;
+        if ('configurable' in newDesc) {
+            desc.configurable = !!newDesc.configurable;
+        }
+        if ('enumerable' in newDesc) {
+            desc.enumerable = !!newDesc.enumerable;
+        }
+        if ('get' in newDesc || 'set' in newDesc) {
+            desc.get = newDesc.get || undefined;
+            desc.set = newDesc.set || undefined;
+        } else {
+            desc.value = 'value' in newDesc? newDesc.value: undefined;
+            desc.writable = !!newDesc.writable;
+        }
+        return desc;
     }
 
 
