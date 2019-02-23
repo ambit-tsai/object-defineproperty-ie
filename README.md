@@ -7,7 +7,8 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 #### Notice
 1. Use native method for `Element` object in IE8;
 1. In other case, `Object.defineProperty` will return a new VB object;
-1. VB object can not add and delete properties;
+1. VB object can't add or delete properties freely;
+1. VB object doesn't have `[[Prototype]]` or `__proto__`;
 
 
 #### Installation
@@ -19,9 +20,12 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 ```html
 <script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var oldObj = {
-        number: 123
-    };
+    var oldObj = Object.defineProperty({}, 'string', {
+        value: 'Ambit Tsai',
+        enumerable: true
+    });
+    // oldObj => {string: "Ambit Tsai"}
+
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
@@ -32,14 +36,21 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
             set: function () {
                 alert('trigger `setter`');
             }
-        },
-        string: {
-            value: 'Ambit Tsai',
-            writable: false
         }
     });
+    // newObj => {
+    //     getter: "trigger `getter`",
+    //     setter: undefined,
+    //     string: "Ambit Tsai"
+    // }
 
-    Object.getOwnPropertyDescriptor(newObj, 'number');
+    var desc = Object.getOwnPropertyDescriptor(newObj, 'string');
+    // desc => {
+    //     configurable: false,
+    //     enumerable: true,
+    //     value: "Ambit Tsai",
+    //     writable: false
+    // }
 </script>
 ```
 

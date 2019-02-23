@@ -2,13 +2,14 @@
 
 
 # `Object.defineProperty` Sham For IE
-一个 `Object.defineProperty` 的 IE 补丁，基于 VBScript 实现。它还提供了`Object.defineProperties`、`Object.getOwnPropertyDescriptor`、`Object.getOwnPropertyDescriptors`等方法。
+一个 `Object.defineProperty` 的 IE 补丁，基于 VBScript 实现。它还提供了`Object.defineProperties`、 `Object.getOwnPropertyDescriptor`、 `Object.getOwnPropertyDescriptors`。
 
 
 #### 注意
 1. 在 IE8 中，对于 `Element` 对象将调用原生的方法；
 1. 其他情况下，`Object.defineProperty` 将会返回一个新的 VB 对象；
-1. VB 对象不能随意增删属性;
+1. VB 对象不能随意增删属性；
+1. VB 对象没有 `[[Prototype]]` 或 `__proto__`；
 
 
 #### 安装
@@ -20,9 +21,12 @@
 ```html
 <script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var oldObj = {
-        number: 123
-    };
+    var oldObj = Object.defineProperty({}, 'string', {
+        value: 'Ambit Tsai',
+        enumerable: true
+    });
+    // oldObj => {string: "Ambit Tsai"}
+
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
@@ -33,14 +37,21 @@
             set: function () {
                 alert('trigger `setter`');
             }
-        },
-        string: {
-            value: 'Ambit Tsai',
-            writable: false
         }
     });
+    // newObj => {
+    //     getter: "trigger `getter`",
+    //     setter: undefined,
+    //     string: "Ambit Tsai"
+    // }
 
-    Object.getOwnPropertyDescriptor(newObj, 'number');
+    var desc = Object.getOwnPropertyDescriptor(newObj, 'string');
+    // desc => {
+    //     configurable: false,
+    //     enumerable: true,
+    //     value: "Ambit Tsai",
+    //     writable: false
+    // }
 </script>
 ```
 
