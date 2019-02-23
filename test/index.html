@@ -12,8 +12,7 @@
     <script src="../dist/object-defineproperty-ie.js" type="text/javascript"></script>
     <script type="text/javascript">
         var oldObj = {
-            number: 1,
-            prop: 'object property'
+            number: 123
         };
         var newObj = Object.defineProperties(oldObj, {
             getter: {
@@ -27,7 +26,6 @@
                 }
             },
             number: {
-                value: 0.1,
                 writable: false
             },
             string: {
@@ -35,7 +33,7 @@
                 writable: true
             },
             boolean: {
-                value: false
+                value: true
             },
             undefined: {
                 value: undefined,
