@@ -6,13 +6,26 @@
  * @see {@link https://github.com/ambit-tsai/object-defineproperty-ie}
  */
 (function (window, Object, undefined) {
-    if (!Object.defineProperties) {
+    // Constant variables
+    var DEFINE_PROPERTY = 'defineProperty';
+    var DEFINE_PROPERTIES = 'defineProperties';
+    var GET_OWN_PROPERTY_DESCRIPTOR = 'getOwnPropertyDescriptor';
+    var GET_OWN_PROPERTY_DESCRIPTORS = 'getOwnPropertyDescriptors';
+    var CONFIGURABLE = 'configurable';
+    var ENUMERABLE = 'enumerable';
+    var VALUE = 'value';
+    var WRITABLE = 'writable';
+    var GET = 'get';
+    var SET = 'set';
+
+
+    if (!Object[DEFINE_PROPERTIES]) {
         // Global variable
         window.VB_cache = {};
 
         // Sham for `defineProperty` and `defineProperties`
-        var defineProperty = Object.defineProperty;
-        Object.defineProperties = function (obj, props) {
+        var defineProperty = Object[DEFINE_PROPERTY];
+        Object[DEFINE_PROPERTIES] = function (obj, props) {
             if (defineProperty && obj instanceof Element) {
                 // Use native method for `Element` object
                 for (var prop in props) {
@@ -25,15 +38,15 @@
                 return createVbObject(obj, props);
             }
         };
-        Object.defineProperty = function (obj, prop, desc) {
+        Object[DEFINE_PROPERTY] = function (obj, prop, desc) {
             var props = {};
             props[prop] = desc;
-            return Object.defineProperties(obj, props);
+            return Object[DEFINE_PROPERTIES](obj, props);
         };
 
         // Sham for `getOwnPropertyDescriptor`
-        var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-        Object.getOwnPropertyDescriptor = function (obj, prop) {
+        var getOwnPropertyDescriptor = Object[GET_OWN_PROPERTY_DESCRIPTOR];
+        Object[GET_OWN_PROPERTY_DESCRIPTOR] = function (obj, prop) {
             // Use native method for `Element` object
             if (getOwnPropertyDescriptor && obj instanceof Element) {
                 return getOwnPropertyDescriptor(obj, prop);
@@ -57,25 +70,16 @@
 
 
     // Sham for `getOwnPropertyDescriptors`
-    if (!Object.getOwnPropertyDescriptors) {
-        Object.getOwnPropertyDescriptors = function (obj) {
+    if (!Object[GET_OWN_PROPERTY_DESCRIPTORS]) {
+        Object[GET_OWN_PROPERTY_DESCRIPTORS] = function (obj) {
             var descMap = {};
             for (var prop in obj) {
-                var desc = Object.getOwnPropertyDescriptor(obj, prop);
+                var desc = Object[GET_OWN_PROPERTY_DESCRIPTOR](obj, prop);
                 if (desc) descMap[prop] = desc;
             }
             return descMap;
         };
     }
-
-
-    // Constant variables
-    var CONFIGURABLE = 'configurable';
-    var ENUMERABLE = 'enumerable';
-    var VALUE = 'value';
-    var WRITABLE = 'writable';
-    var GET = 'get';
-    var SET = 'set';
 
 
     /**
@@ -86,7 +90,7 @@
      */
     function createVbObject(obj, props) {
         // Collect descriptors
-        var descMap = Object.getOwnPropertyDescriptors(obj);
+        var descMap = Object[GET_OWN_PROPERTY_DESCRIPTORS](obj);
         for (var prop in props) {
             if (has(props, prop)) {
                 checkDescriptor(props[prop]);
@@ -97,16 +101,16 @@
             }
         }
 
-        var uid = window.setTimeout(function () {}); // generate an unique id
+        var uid = window.setTimeout(function () {});    // generate an unique id
         var script = generateVbScript(descMap, uid);
         window.execScript(script, 'VBS');
-        obj = window['VB_factory_' + uid](); // call factory function to create object
+        obj = window['VB_factory_' + uid]();            // call factory function to create object
         for (var prop in descMap) {
             if (descMap[prop][WRITABLE]) {
-                obj[prop] = descMap[prop][VALUE];    // set initial value
+                obj[prop] = descMap[prop][VALUE];       // set initial value
             }
         }
-        window.VB_cache[uid] = {    // cache
+        window.VB_cache[uid] = {                        // cache
             obj: obj,
             desc: descMap
         };
@@ -134,7 +138,7 @@
             throwTypeError('Property description must be an object');
         }
         if ((VALUE in desc || WRITABLE in desc) && (GET in desc || SET in desc)) {
-            throwTypeError('Invalid property descriptor. Cannot both specify accessors and a value or writable attribute');
+            throwTypeError('Cannot both specify accessors and a value or writable attribute');
         }
         if (GET in desc && typeof desc[GET] !== 'function' && desc[GET] !== undefined) {
             throwTypeError('Getter must be a function');
@@ -173,8 +177,16 @@
             }
         }
 
-        desc[CONFIGURABLE] = !!(CONFIGURABLE in newDesc ? newDesc[CONFIGURABLE] : desc[CONFIGURABLE]);
-        desc[ENUMERABLE] = !!(ENUMERABLE in newDesc ? newDesc[ENUMERABLE] : desc[ENUMERABLE]);
+        desc[CONFIGURABLE] = !!(
+            CONFIGURABLE in newDesc 
+                ? newDesc[CONFIGURABLE] 
+                : desc[CONFIGURABLE]
+        );
+        desc[ENUMERABLE] = !!(
+            ENUMERABLE in newDesc 
+                ? newDesc[ENUMERABLE] 
+                : desc[ENUMERABLE]
+        );
 
         if (GET in newDesc || SET in newDesc) {
             desc[GET] = newDesc[GET] || undefined;
