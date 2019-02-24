@@ -1,7 +1,8 @@
-简体中文 | <a href="README.md">English</a>
+简体中文 | [English](README.md)
 
 
-# `Object.defineProperty` Sham For IE
+# Object.defineProperty Sham For IE&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/object-defineproperty-ie.svg)
+
 一个 `Object.defineProperty` 的 IE 补丁，基于 VBScript 实现。它还提供了`Object.defineProperties`、 `Object.getOwnPropertyDescriptor`、 `Object.getOwnPropertyDescriptors`。
 
 
