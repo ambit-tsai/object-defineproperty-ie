@@ -1,6 +1,6 @@
 [简体中文](README.zh-CN.md) | English
 
-# `Object.defineProperty` Sham For IE&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/object-defineproperty-ie.svg)
+# Object.defineProperty Sham For IE&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/object-defineproperty-ie.svg)
 
 A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `Object.defineProperties`, `Object.getOwnPropertyDescriptor`, `Object.getOwnPropertyDescriptors`.
 
