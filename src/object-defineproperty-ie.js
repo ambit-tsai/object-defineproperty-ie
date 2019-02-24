@@ -5,8 +5,9 @@
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/object-defineproperty-ie}
  */
-(function (window, Object, undefined) {
+(function (window, Object) {
     // Constant variables
+    var UNDEFINED;
     var DEFINE_PROPERTY = 'defineProperty';
     var DEFINE_PROPERTIES = 'defineProperties';
     var GET_OWN_PROPERTY_DESCRIPTOR = 'getOwnPropertyDescriptor';
@@ -64,7 +65,7 @@
                 enumerable: true,
                 value: obj[prop],
                 writable: true
-            } : undefined;
+            } : UNDEFINED;
         };
     }
 
@@ -140,10 +141,10 @@
         if ((VALUE in desc || WRITABLE in desc) && (GET in desc || SET in desc)) {
             throwTypeError('Cannot both specify accessors and a value or writable attribute');
         }
-        if (GET in desc && typeof desc[GET] !== 'function' && desc[GET] !== undefined) {
+        if (GET in desc && typeof desc[GET] !== 'function' && desc[GET] !== UNDEFINED) {
             throwTypeError('Getter must be a function');
         }
-        if (SET in desc && typeof desc[SET] !== 'function' && desc[SET] !== undefined) {
+        if (SET in desc && typeof desc[SET] !== 'function' && desc[SET] !== UNDEFINED) {
             throwTypeError('Setter must be a function');
         }
     }
@@ -189,13 +190,13 @@
         );
 
         if (GET in newDesc || SET in newDesc) {
-            desc[GET] = newDesc[GET] || undefined;
-            desc[SET] = newDesc[SET] || undefined;
+            desc[GET] = newDesc[GET] || UNDEFINED;
+            desc[SET] = newDesc[SET] || UNDEFINED;
         } else {
             if (VALUE in newDesc) {
                 desc[VALUE] = newDesc[VALUE];
             } else if (!(VALUE in desc)) {
-                desc[VALUE] = undefined;
+                desc[VALUE] = UNDEFINED;
             }
             desc[WRITABLE] = !!newDesc[WRITABLE];
         }
