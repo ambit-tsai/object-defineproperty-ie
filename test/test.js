@@ -1,4 +1,6 @@
-// 
+/**
+ * Creates a test block
+ */
 function describe(name, func) {
     var container = document.createElement('div');
     container.className = 'result';
