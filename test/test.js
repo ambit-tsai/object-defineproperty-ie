@@ -22,8 +22,20 @@ function describe(name, func) {
 
 /********** Divider **********/
 
-// defineProperty# basic support
-describe('defineProperty# basic support', function () {
+// defineProperty: basic support
+describe('defineProperty: basic support', function () {
+    expect(function () {
+        Object.defineProperty('non-object', 'prop', {});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+
+    expect(function () {
+        Object.defineProperty({}, 'prop', 'non-object');
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+
 	var people = {name: 'Ambit-Tsai'};
     people = Object.defineProperty(people, 'sex', {
         enumerable: true,
@@ -36,8 +48,8 @@ describe('defineProperty# basic support', function () {
 });
 
 
-// defineProperties# common types of data
-describe('defineProperties# common types of data', function () {
+// defineProperties: set all common types of data
+describe('defineProperties: set all common types of data', function () {
     var obj = Object.defineProperties({}, {
         number: {
             enumerable: true,
@@ -87,8 +99,8 @@ describe('defineProperties# common types of data', function () {
 });
 
 
-// Descriptor# configurable
-describe('Descriptor# configurable', function () {
+// Descriptor: configurable
+describe('Descriptor: configurable', function () {
     var people = Object.defineProperty({}, 'name', {
         configurable: true
     });
@@ -107,8 +119,8 @@ describe('Descriptor# configurable', function () {
 });
 
 
-// Descriptor# value & writable
-describe('Descriptor# value & writable', function () {
+// Descriptor: value & writable
+describe('Descriptor: value & writable', function () {
     var people = Object.defineProperty({}, 'name', {
         configurable: true,
         value: 'Ambit-Tsai',
@@ -125,8 +137,20 @@ describe('Descriptor# value & writable', function () {
 });
 
 
-// Descriptor# get & set
-describe('Descriptor# get & set', function () {
+// Descriptor: get & set
+describe('Descriptor: get & set', function () {
+    expect(function () {
+        Object.defineProperty({}, 'prop', {get: null});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+    
+    expect(function () {
+        Object.defineProperty({}, 'prop', {set: 123});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+
     var people = Object.defineProperty({
         _temp: null
     }, 'name', {
@@ -139,23 +163,11 @@ describe('Descriptor# get & set', function () {
     });
     people.name = 'Ambit-Tsai';
     expect(people.name).to.be('Ambit-Tsai');
-    
-    expect(function () {
-        Object.defineProperty({}, 'prop', {get: null});
-    }).to.throwException(function (ex) {
-        expect(ex).to.be.a(TypeError);
-    });
-    
-    expect(function () {
-        Object.defineProperty({}, 'prop', {set: 123});
-    }).to.throwException(function (ex) {
-        expect(ex).to.be.a(TypeError);
-    });
 });
 
 
-// Descriptor# specify both accessor and data descriptor
-describe('Descriptor# specify both accessor and data descriptor', function () {
+// Descriptor: specify both accessor and data descriptor
+describe('Descriptor: specify both accessor and data descriptor', function () {
     expect(function () {
         Object.defineProperty({}, 'prop', {
 			value: 123,
@@ -176,8 +188,8 @@ describe('Descriptor# specify both accessor and data descriptor', function () {
 });
 
 
-// getOwnPropertyDescriptor# basic support
-describe('getOwnPropertyDescriptor# basic support', function () {
+// getOwnPropertyDescriptor: basic support
+describe('getOwnPropertyDescriptor: basic support', function () {
     var desc = Object.getOwnPropertyDescriptor({}, 'a');
     expect(desc).to.be(undefined);
     
@@ -192,8 +204,8 @@ describe('getOwnPropertyDescriptor# basic support', function () {
 });
 
 
-// getOwnPropertyDescriptors# basic support
-describe('getOwnPropertyDescriptors# basic support', function () {
+// getOwnPropertyDescriptors: basic support
+describe('getOwnPropertyDescriptors: basic support', function () {
     var desc = Object.getOwnPropertyDescriptors({});
     expect(desc).to.be.empty();
     
