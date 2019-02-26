@@ -75,7 +75,7 @@ describe('defineProperties# common types of data', function () {
         undefined: undefined,
         'null': null,
         object: {},
-        array: [],
+        array: []
     });
     
     obj = Object.defineProperties({}, {
@@ -128,7 +128,7 @@ describe('Descriptor# value & writable', function () {
 // Descriptor# get & set
 describe('Descriptor# get & set', function () {
     var people = Object.defineProperty({
-        _temp: null,
+        _temp: null
     }, 'name', {
         get: function () {
             return this._temp;
