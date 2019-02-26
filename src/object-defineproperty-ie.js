@@ -234,7 +234,24 @@
             var desc = descMap[prop];
             if (VALUE in desc || WRITABLE in desc) {
                 if (desc[WRITABLE]) {
-                    buffer.push('  Public [' + prop + ']');
+                    //buffer.push('  Public [' + prop + ']');
+                    buffer.push(
+                        '  Public Property Get [' + prop + ']',
+                        '    Dim [_prop]',
+                        '    On Error Resume Next',
+                        '    Set [' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].value',
+                        '    If Err.Number <> 0 Then',
+                        '      [' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].value',
+                        '    End If',
+                        '    On Error Goto 0',
+                        '  End Property',
+                        '  Public Property Let [' + prop + '](val)',
+                        '    Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val',
+                        '  End Property',
+                        '  Public Property Set [' + prop + '](val)',
+                        '    Set Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val'
+                        '  End Property'
+                    );
                 } else {
                     var str = '    ';
                     if (desc[VALUE] && (typeof desc[VALUE] === 'object' || typeof desc[VALUE] === 'function')) {
