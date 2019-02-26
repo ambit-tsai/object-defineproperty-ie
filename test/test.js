@@ -70,19 +70,18 @@ describe('Descriptor# get&set', function () {
     });
     obj.prop = '';
     expect(obj.prop).to.be('');
-});
-
-
-// Test `defineProperty# Basic support`
-describe('defineProperty# Basic support', function () {
-    var people = Object.defineProperty({
-        name: 'Ambit-Tsai'
-    }, 'walk', {
-        enumerable: true,
-        value: function () {}
+    
+    expect(function () {
+        Object.defineProperty({}, 'prop', {get: null});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
     });
-    expect(people.name).to.be('Ambit-Tsai');
-    expect(people.walk).to.be.a('function');
+    
+    expect(function () {
+        Object.defineProperty({}, 'prop', {set: null});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
 });
 
 
