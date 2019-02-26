@@ -21,6 +21,17 @@ function describe(name, func) {
 }
 
 
+//
+describe('Descriptor#configurable', function () {
+    var obj = Object.defineProperty({}, 'prop', {
+        configurable: true,
+        //enumerable: true,
+        //value: 'Ambit-Tsai'
+    });
+    expect(obj).to.has.property('prop');
+});
+
+
 // Test `defineProperty# Basic support`
 describe('defineProperty# Basic support', function () {
     var people = Object.defineProperty({
