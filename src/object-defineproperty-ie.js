@@ -106,11 +106,6 @@
         var script = generateVbScript(descMap, uid);
         window.execScript(script, 'VBS');
         obj = window['VB_factory_' + uid]();            // call factory function to create object
-        //for (var prop in descMap) {
-            //if (descMap[prop][WRITABLE]) {
-                //obj[prop] = descMap[prop][VALUE];       // set initial value
-            //}
-        //}
         window.VB_cache[uid] = {                        // cache
             obj: obj,
             desc: descMap
@@ -234,7 +229,6 @@
             var desc = descMap[prop];
             if (VALUE in desc) {
                 if (desc[WRITABLE]) {
-                    //buffer.push('  Public [' + prop + ']');
                     buffer.push(
                         '  Public Property Get [' + prop + ']',
                         '    Dim [_' + prop + ']',
@@ -250,7 +244,7 @@
                         '    Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val',
                         '  End Property',
                         '  Public Property Set [' + prop + '](val)',
-                        '    Set Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val'
+                        '    Set Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val',
                         '  End Property'
                     );
                 } else {
@@ -273,10 +267,12 @@
                 if (desc[GET]) {
                     buffer.push(
                         '  Public Property Get [' + prop + ']',
+                        '    Dim [_' + prop + ']',
+                        '    Set [_' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].get',
                         '    On Error Resume Next',
-                        '    Set [' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].get.call(ME)',
+                        '    Set [' + prop + '] = [_' + prop + '].call(ME)',
                         '    If Err.Number <> 0 Then',
-                        '      [' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].get.call(ME)',
+                        '      [' + prop + '] = [_' + prop + '].call(ME)',
                         '    End If',
                         '    On Error Goto 0',
                         '  End Property'
