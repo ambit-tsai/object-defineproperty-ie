@@ -23,9 +23,9 @@ function describe(name, func) {
 
 //
 describe('Descriptor# configurable', function () {
-    var obj = Object.defineProperty({}, 'prop', {configurable: true});
-    expect(obj).to.has.property('prop');
-    
+    var obj = Object.defineProperty({}, 'prop', {
+        configurable: true
+    });
     obj = Object.defineProperty(obj, 'prop', {
         configurable: false,
         enumerable: true,
@@ -38,6 +38,22 @@ describe('Descriptor# configurable', function () {
     }).to.throwException(function (ex) {
         expect(ex).to.be.a(TypeError);
     });
+});
+
+
+describe('Descriptor# value&writable', function () {
+    var obj = Object.defineProperty({}, 'prop', {
+        value: 'Ambit-Tsai',
+        writable: true
+    });
+    obj.prop = '';
+    expect(obj.prop).to.be('');
+    
+    obj = Object.defineProperty(obj, 'prop', {
+        writable: false
+    });
+    obj.prop = 123;
+    expect(obj.prop).to.be('');
 });
 
 
