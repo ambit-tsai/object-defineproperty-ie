@@ -106,11 +106,11 @@
         var script = generateVbScript(descMap, uid);
         window.execScript(script, 'VBS');
         obj = window['VB_factory_' + uid]();            // call factory function to create object
-        for (var prop in descMap) {
-            if (descMap[prop][WRITABLE]) {
-                obj[prop] = descMap[prop][VALUE];       // set initial value
-            }
-        }
+        //for (var prop in descMap) {
+            //if (descMap[prop][WRITABLE]) {
+                //obj[prop] = descMap[prop][VALUE];       // set initial value
+            //}
+        //}
         window.VB_cache[uid] = {                        // cache
             obj: obj,
             desc: descMap
@@ -232,16 +232,17 @@
         ];
         for (var prop in descMap) {
             var desc = descMap[prop];
-            if (VALUE in desc || WRITABLE in desc) {
+            if (VALUE in desc) {
                 if (desc[WRITABLE]) {
                     //buffer.push('  Public [' + prop + ']');
                     buffer.push(
                         '  Public Property Get [' + prop + ']',
-                        '    Dim [_prop]',
+                        '    Dim [_' + prop + ']',
+                        '    Set [_' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + ']',
                         '    On Error Resume Next',
-                        '    Set [' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].value',
+                        '    Set [' + prop + '] = [_' + prop + '].value',
                         '    If Err.Number <> 0 Then',
-                        '      [' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].value',
+                        '      [' + prop + '] = [_' + prop + '].value',
                         '    End If',
                         '    On Error Goto 0',
                         '  End Property',
@@ -268,7 +269,7 @@
                         '  End Property'
                     );
                 }
-            } else if (GET in desc || SET in desc) {
+            } else {
                 if (desc[GET]) {
                     buffer.push(
                         '  Public Property Get [' + prop + ']',
@@ -303,8 +304,6 @@
                         '  End Property'
                     );
                 }
-            } else {
-                buffer.push('  Public [' + prop + ']');
             }
         }
         buffer.push(
