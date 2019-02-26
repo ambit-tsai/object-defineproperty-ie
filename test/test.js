@@ -57,6 +57,22 @@ describe('Descriptor# value&writable', function () {
 });
 
 
+describe('Descriptor# get&set', function () {
+    var obj = Object.defineProperty({
+        temp: null,
+    }, 'prop', {
+        get: function () {
+            return this.temp;
+        },
+        set: function (val) {
+            this.temp = val;
+        }
+    });
+    obj.prop = '';
+    expect(obj.prop).to.be('');
+});
+
+
 // Test `defineProperty# Basic support`
 describe('defineProperty# Basic support', function () {
     var people = Object.defineProperty({
