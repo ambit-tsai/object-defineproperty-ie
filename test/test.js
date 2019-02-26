@@ -110,6 +110,7 @@ describe('Descriptor# configurable', function () {
 // Descriptor# value & writable
 describe('Descriptor# value & writable', function () {
     var people = Object.defineProperty({}, 'name', {
+        configurable: true,
         value: 'Ambit-Tsai',
         writable: true
     });
