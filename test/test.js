@@ -195,6 +195,9 @@ describe('getOwnPropertyDescriptor', function () {
 
 // Test `getOwnPropertyDescriptors`
 describe('getOwnPropertyDescriptors', function () {
+    var desc = Object.getOwnPropertyDescriptors({});
+    expect(desc).to.be.empty();
+    
     var people = {
         name: 'Ambit-Tsai'
     };
@@ -207,8 +210,4 @@ describe('getOwnPropertyDescriptors', function () {
             writable: true
         }
     });
-
-    
-    var desc = Object.getOwnPropertyDescriptors({});
-    expect(desc).to.be.empty();
 });
