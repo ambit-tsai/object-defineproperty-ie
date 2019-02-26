@@ -177,7 +177,7 @@
         var desc = {};
         desc[CONFIGURABLE] = !!temp[CONFIGURABLE];
         desc[ENUMERABLE] = !!temp[ENUMERABLE];
-        if (GET in newDesc || SET in newDesc) {
+        if (GET in temp || SET in temp) {
             desc[GET] = temp[GET];
             desc[SET] = temp[SET];
         } else {
