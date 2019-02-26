@@ -22,13 +22,22 @@ function describe(name, func) {
 
 
 //
-describe('Descriptor#configurable', function () {
-    var obj = Object.defineProperty({}, 'prop', {
-        configurable: true,
-        //enumerable: true,
-        //value: 'Ambit-Tsai'
-    });
+describe('Descriptor# configurable', function () {
+    var obj = Object.defineProperty({}, 'prop', {configurable: true});
     expect(obj).to.has.property('prop');
+    
+    obj = Object.defineProperty(obj, 'prop', {
+        configurable: false,
+        enumerable: true,
+        value: 'Ambit-Tsai'
+    });
+    expect(obj).to.be.eql({prop: 'Ambit-Tsai'});
+    
+    expect(function () {
+        Object.defineProperty(obj, 'prop', {value: ''});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
 });
 
 
