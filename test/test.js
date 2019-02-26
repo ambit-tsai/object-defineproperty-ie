@@ -171,25 +171,17 @@ describe('defineProperties# Basic support', function () {
 
 // Test `getOwnPropertyDescriptor`
 describe('getOwnPropertyDescriptor', function () {
-    var people = {
-        name: 'Ambit-Tsai'
-    };
-    var desc = Object.getOwnPropertyDescriptor({}, 'name');
-    // Element
-    // VB 
-    // JS 
-
-    var desc = Object.getOwnPropertyDescriptor(people, 'name');
+    var desc = Object.getOwnPropertyDescriptor({}, 'a');
+    expect(desc).to.be(undefined)
+    
+    var people = {name: 'Ambit-Tsai'};
+    desc = Object.getOwnPropertyDescriptor(people, 'name');
     expect(desc).to.be.eql({
         configurable: true,
         enumerable: true,
         value: 'Ambit-Tsai',
         writable: true
     });
-
-    
-    var desc = Object.getOwnPropertyDescriptor({}, 'a');
-    expect(desc).to.be(undefined);
 });
 
 
