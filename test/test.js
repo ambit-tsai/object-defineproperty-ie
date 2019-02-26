@@ -20,86 +20,24 @@ function describe(name, func) {
     document.body.appendChild(container);
 }
 
+/********** Divider **********/
 
-//
-describe('Descriptor# configurable', function () {
-    var obj = Object.defineProperty({}, 'prop', {
-        configurable: true
-    });
-    obj = Object.defineProperty(obj, 'prop', {
-        configurable: false,
+// defineProperty# basic support
+describe('defineProperty# basic support', function () {
+	var people = {name: 'Ambit-Tsai'};
+    people = Object.defineProperty(people, 'sex', {
         enumerable: true,
-        value: 'Ambit-Tsai'
+        value: 'male'
     });
-    expect(obj).to.be.eql({prop: 'Ambit-Tsai'});
-    
-    expect(function () {
-        Object.defineProperty(obj, 'prop', {value: ''});
-    }).to.throwException(function (ex) {
-        expect(ex).to.be.a(TypeError);
-    });
+    expect(people).to.be.eql({
+		name: 'Ambit-Tsai',
+		sex: 'male'
+	});
 });
 
 
-describe('Descriptor# value&writable', function () {
-    var obj = Object.defineProperty({}, 'prop', {
-        value: 'Ambit-Tsai',
-        writable: true
-    });
-    obj.prop = '';
-    expect(obj.prop).to.be('');
-    
-    obj = Object.defineProperty(obj, 'prop', {
-        writable: false
-    });
-    obj.prop = 123;
-    expect(obj.prop).to.be('');
-});
-
-
-describe('Descriptor# get&set', function () {
-    var obj = Object.defineProperty({
-        temp: null,
-    }, 'prop', {
-        get: function () {
-            return this.temp;
-        },
-        set: function (val) {
-            this.temp = val;
-        }
-    });
-    obj.prop = '';
-    expect(obj.prop).to.be('');
-    
-    expect(function () {
-        Object.defineProperty({}, 'prop', {get: null});
-    }).to.throwException(function (ex) {
-        expect(ex).to.be.a(TypeError);
-    });
-    
-    expect(function () {
-        Object.defineProperty({}, 'prop', {set: null});
-    }).to.throwException(function (ex) {
-        expect(ex).to.be.a(TypeError);
-    });
-});
-
-
-// Test `defineProperty# Error`
-describe('defineProperty# Error', function () {
-    var people = Object.defineProperty({
-        name: 'Ambit-Tsai'
-    }, 'walk', {
-        enumerable: true,
-        value: function () {}
-    });
-    expect(people.name).to.be('Ambit-Tsai');
-    expect(people.walk).to.be.a('function');
-});
-
-
-// Test `defineProperties# Basic support`
-describe('defineProperties# Basic support', function () {
+// defineProperties# common types of data
+describe('defineProperties# common types of data', function () {
     var obj = Object.defineProperties({}, {
         number: {
             enumerable: true,
@@ -145,14 +83,102 @@ describe('defineProperties# Basic support', function () {
             value: function () {}
         }
     });
-    except(obj.fn).to.be.a('function');
+    expect(obj.fn).to.be.a('function');
 });
 
 
-// Test `getOwnPropertyDescriptor`
-describe('getOwnPropertyDescriptor', function () {
+// Descriptor# configurable
+describe('Descriptor# configurable', function () {
+    var people = Object.defineProperty({}, 'name', {
+        configurable: true
+    });
+    people = Object.defineProperty(people, 'name', {
+        configurable: false,
+        enumerable: true,
+        value: 'Ambit-Tsai'
+    });
+    expect(people).to.be.eql({name: 'Ambit-Tsai'});
+    
+    expect(function () {
+        Object.defineProperty(people, 'name', {value: ''});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+// Descriptor# value & writable
+describe('Descriptor# value & writable', function () {
+    var people = Object.defineProperty({}, 'name', {
+        value: 'Ambit-Tsai',
+        writable: true
+    });
+    people.name = '';
+    expect(people.name).to.be('');
+    
+    people = Object.defineProperty(people, 'name', {
+        writable: false
+    });
+    people.name = 123;
+    expect(people.name).to.be('');
+});
+
+
+// Descriptor# get & set
+describe('Descriptor# get & set', function () {
+    var people = Object.defineProperty({
+        _temp: null,
+    }, 'name', {
+        get: function () {
+            return this._temp;
+        },
+        set: function (val) {
+            this._temp = val;
+        }
+    });
+    people.name = 'Ambit-Tsai';
+    expect(people.name).to.be('Ambit-Tsai');
+    
+    expect(function () {
+        Object.defineProperty({}, 'prop', {get: null});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+    
+    expect(function () {
+        Object.defineProperty({}, 'prop', {set: 123});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+// Descriptor# specify both accessor and data descriptor
+describe('Descriptor# specify both accessor and data descriptor', function () {
+    expect(function () {
+        Object.defineProperty({}, 'prop', {
+			value: 123,
+			get: function () {}
+		});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+	
+    expect(function () {
+        Object.defineProperty({}, 'prop', {
+			writable: true,
+			set: function () {}
+		});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+// getOwnPropertyDescriptor# basic support
+describe('getOwnPropertyDescriptor# basic support', function () {
     var desc = Object.getOwnPropertyDescriptor({}, 'a');
-    expect(desc).to.be(undefined)
+    expect(desc).to.be(undefined);
     
     var people = {name: 'Ambit-Tsai'};
     desc = Object.getOwnPropertyDescriptor(people, 'name');
@@ -165,8 +191,8 @@ describe('getOwnPropertyDescriptor', function () {
 });
 
 
-// Test `getOwnPropertyDescriptors`
-describe('getOwnPropertyDescriptors', function () {
+// getOwnPropertyDescriptors# basic support
+describe('getOwnPropertyDescriptors# basic support', function () {
     var desc = Object.getOwnPropertyDescriptors({});
     expect(desc).to.be.empty();
     
