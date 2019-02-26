@@ -11,7 +11,7 @@
     var DEFINE_PROPERTY = 'defineProperty';
     var DEFINE_PROPERTIES = 'defineProperties';
     var GET_OWN_PROPERTY_DESCRIPTOR = 'getOwnPropertyDescriptor';
-    var GET_OWN_PROPERTY_DESCRIPTORS = 'getOwnPropertyDescriptors';
+    var GET_OWN_PROPERTY_DESCRIPTORS = GET_OWN_PROPERTY_DESCRIPTOR + 's';   // getOwnPropertyDescriptors
     var CONFIGURABLE = 'configurable';
     var ENUMERABLE = 'enumerable';
     var VALUE = 'value';
@@ -27,6 +27,9 @@
         // Sham for `defineProperty` and `defineProperties`
         var defineProperty = Object[DEFINE_PROPERTY];
         Object[DEFINE_PROPERTIES] = function (obj, props) {
+            if (!isObject(obj)) {
+                throwTypeError('Method called on non-object');
+            }
             if (defineProperty && obj instanceof Element) {
                 // Use native method for `Element` object
                 for (var prop in props) {
@@ -60,12 +63,15 @@
                 }
             }
             // Others
-            return has(obj, prop) ? {
-                configurable: true,
-                enumerable: true,
-                value: obj[prop],
-                writable: true
-            } : UNDEFINED;
+            var desc = UNDEFINED;
+            if (has(obj, prop)) {
+                desc = {};
+                desc[CONFIGURABLE] = true;
+                desc[ENUMERABLE] = true;
+                desc[VALUE] = obj[prop];
+                desc[WRITABLE] = true;
+            }
+            return desc;
         };
     }
 
@@ -134,7 +140,7 @@
             throwTypeError('Property description must be an object');
         }
         if ((VALUE in desc || WRITABLE in desc) && (GET in desc || SET in desc)) {
-            throwTypeError('Cannot both specify accessors and a value or writable attribute');
+            throwTypeError('Cannot both specify accessors and a ' + VALUE + ' or ' + WRITABLE + ' attribute');
         }
         if (GET in desc && typeof desc[GET] !== 'function' && desc[GET] !== UNDEFINED) {
             throwTypeError('Getter must be a function');
@@ -211,82 +217,81 @@
      * @returns {string} VB script 
      */
     function generateVbScript(descMap, uid) {
+        var PUBLIC_PROPERTY = '  Public Property';
+        var END_PROPERTY = '  End Property';
         var buffer = [
             'Class VB_Class_' + uid
         ];
         for (var prop in descMap) {
+            var DESCRIPTOR = 'Window.VB_cache.[' + uid + '].desc.[' + prop + ']';
             var desc = descMap[prop];
             if (VALUE in desc) {
                 if (desc[WRITABLE]) {
                     buffer.push(
-                        '  Public Property Get [' + prop + ']',
-                        '    Dim [_' + prop + ']',
-                        '    Set [_' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + ']',
+                        PUBLIC_PROPERTY + ' Get [' + prop + ']',
                         '    On Error Resume Next',
-                        '    Set [' + prop + '] = [_' + prop + '].value',
+                        '    Set [' + prop + '] = ' + DESCRIPTOR + '.value',
                         '    If Err.Number <> 0 Then',
-                        '      [' + prop + '] = [_' + prop + '].value',
+                        '      [' + prop + '] = ' + DESCRIPTOR + '.value',
                         '    End If',
                         '    On Error Goto 0',
-                        '  End Property',
-                        '  Public Property Let [' + prop + '](val)',
-                        '    Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val',
-                        '  End Property',
-                        '  Public Property Set [' + prop + '](val)',
-                        '    Set Window.VB_cache.[' + uid + '].desc.[' + prop + '].value = val',
-                        '  End Property'
+                        END_PROPERTY,
+                        PUBLIC_PROPERTY + ' Let [' + prop + '](val)',
+                        '    ' + DESCRIPTOR + '.value = val',
+                        END_PROPERTY,
+                        PUBLIC_PROPERTY + ' Set [' + prop + '](val)',
+                        '    Set ' + DESCRIPTOR + '.value = val',
+                        END_PROPERTY
                     );
                 } else {
                     var str = '    ';
-                    if (desc[VALUE] && (typeof desc[VALUE] === 'object' || typeof desc[VALUE] === 'function')) {
+                    if (isObject(desc[VALUE])) {
                         str += 'Set '; // use `Set` for object
                     }
-                    str += '[' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].value';
+                    str += '[' + prop + '] = ' + DESCRIPTOR + '.value';
                     buffer.push(
-                        '  Public Property Get [' + prop + ']',
+                        PUBLIC_PROPERTY + ' Get [' + prop + ']',
                         str,
-                        '  End Property',
-                        '  Public Property Let [' + prop + '](v)', // define empty `setter` for avoiding errors
-                        '  End Property',
-                        '  Public Property Set [' + prop + '](v)',
-                        '  End Property'
+                        END_PROPERTY,
+                        PUBLIC_PROPERTY + ' Let [' + prop + '](v)', // define empty `setter` for avoiding errors
+                        END_PROPERTY,
+                        PUBLIC_PROPERTY + ' Set [' + prop + '](v)',
+                        END_PROPERTY
                     );
                 }
             } else {
                 if (desc[GET]) {
                     buffer.push(
-                        '  Public Property Get [' + prop + ']',
-                        '    Dim [_' + prop + ']',
-                        '    Set [_' + prop + '] = Window.VB_cache.[' + uid + '].desc.[' + prop + '].get',
+                        PUBLIC_PROPERTY + ' Get [' + prop + ']',
                         '    On Error Resume Next',
-                        '    Set [' + prop + '] = [_' + prop + '].call(ME)',
+                        '    Set [' + prop + '] = ' + DESCRIPTOR + '.get.call(ME)',
                         '    If Err.Number <> 0 Then',
-                        '      [' + prop + '] = [_' + prop + '].call(ME)',
+                        '      [' + prop + '] = ' + DESCRIPTOR + '.get.call(ME)',
                         '    End If',
                         '    On Error Goto 0',
-                        '  End Property'
+                        END_PROPERTY
                     );
                 } else {
                     buffer.push(
-                        '  Public Property Get [' + prop + ']',
-                        '  End Property'
+                        PUBLIC_PROPERTY + ' Get [' + prop + ']',
+                        END_PROPERTY
                     );
                 }
                 if (desc[SET]) {
                     buffer.push(
-                        '  Public Property Let [' + prop + '](val)',
-                        '    Call Window.VB_cache.[' + uid + '].desc.[' + prop + '].set.call(ME, val)',
-                        '  End Property',
-                        '  Public Property Set [' + prop + '](val)',
-                        '    Call Window.VB_cache.[' + uid + '].desc.[' + prop + '].set.call(ME, val)',
-                        '  End Property'
+                        PUBLIC_PROPERTY + ' Let [' + prop + '](val)',
+                        '    Call ' + DESCRIPTOR + '.set.call(ME, val)',
+                        END_PROPERTY,
+                        PUBLIC_PROPERTY + ' Set [' + prop + '](val)',
+                        '    Call ' + DESCRIPTOR + '.set.call(ME, val)',
+                        END_PROPERTY
                     );
                 } else {
                     buffer.push(
-                        '  Public Property Let [' + prop + '](v)',
-                        '  End Property',
-                        '  Public Property Set [' + prop + '](v)',
-                        '  End Property'
+                        PUBLIC_PROPERTY + ' Let [' + prop + '](v)',
+                        END_PROPERTY,
+                        PUBLIC_PROPERTY + ' Set [' + prop + '](v)',
+                        END_PROPERTY
                     );
                 }
             }
@@ -298,5 +303,15 @@
             'End Function'
         );
         return buffer.join('\r\n');
+    }
+
+
+    /**
+     * Checks if value is the language type of Object
+     * @param {any} value 
+     * @returns {boolean}
+     */
+    function isObject(value) {
+        return value && (typeof value === 'object' || typeof value === 'function');
     }
 })(window, Object);
