@@ -140,7 +140,7 @@ describe('defineProperties# Basic support', function () {
         array: [],
     });
     
-    obj = Object.defineProperties(obj, {
+    obj = Object.defineProperties({}, {
         fn: {
             value: function () {}
         }
