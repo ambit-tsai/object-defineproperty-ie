@@ -1,6 +1,8 @@
-<a href="README.zh-CN.md">简体中文</a> | English
+[简体中文](README.zh-CN.md) | English
 
-# `Object.defineProperty` Sham For IE
+
+# Object.defineProperty Sham For IE&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/object-defineproperty-ie.svg)
+
 A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `Object.defineProperties`, `Object.getOwnPropertyDescriptor`, `Object.getOwnPropertyDescriptors`.
 
 
@@ -9,6 +11,7 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 1. In other case, `Object.defineProperty` will return a new VB object;
 1. VB object can't add or delete properties freely;
 1. VB object doesn't have `[[Prototype]]` or `__proto__`;
+1. The properties of VB object is enumerable even if descriptor `enumerable` is `false`;
 
 
 #### Installation
@@ -29,17 +32,17 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
-                return 'trigger `getter`';
+                return this.string;
             }
         },
         setter: {
-            set: function () {
-                alert('trigger `setter`');
+            set: function (value) {
+                this.string = value;
             }
         }
     });
     // newObj => {
-    //     getter: "trigger `getter`",
+    //     getter: "Ambit Tsai",
     //     setter: undefined,
     //     string: "Ambit Tsai"
     // }
@@ -53,6 +56,16 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
     // }
 </script>
 ```
+
+
+#### Testing
+Accessing `test/index.html` with browser
+
+
+#### Contact Us
+1. *WeChat*: ambit_tsai
+1. *QQ Group*: 663286147
+1. *E-mail*: ambit_tsai@qq.com
 
 
 #### Reference

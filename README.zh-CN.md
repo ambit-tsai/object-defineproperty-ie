@@ -1,7 +1,8 @@
-简体中文 | <a href="README.md">English</a>
+简体中文 | [English](README.md)
 
 
-# `Object.defineProperty` Sham For IE
+# Object.defineProperty Sham For IE&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/object-defineproperty-ie.svg)
+
 一个 `Object.defineProperty` 的 IE 补丁，基于 VBScript 实现。它还提供了`Object.defineProperties`、 `Object.getOwnPropertyDescriptor`、 `Object.getOwnPropertyDescriptors`。
 
 
@@ -10,6 +11,7 @@
 1. 其他情况下，`Object.defineProperty` 将会返回一个新的 VB 对象；
 1. VB 对象不能随意增删属性；
 1. VB 对象没有 `[[Prototype]]` 或 `__proto__`；
+1. 即使描述符 `enumerable` 为 `false` ，VB 对象的属性仍是可枚举的；
 
 
 #### 安装
@@ -30,17 +32,17 @@
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
-                return 'trigger `getter`';
+                return this.string;
             }
         },
         setter: {
-            set: function () {
-                alert('trigger `setter`');
+            set: function (value) {
+                this.string = value;
             }
         }
     });
     // newObj => {
-    //     getter: "trigger `getter`",
+    //     getter: "Ambit Tsai",
     //     setter: undefined,
     //     string: "Ambit Tsai"
     // }
@@ -54,6 +56,16 @@
     // }
 </script>
 ```
+
+
+#### 测试
+使用浏览器访问 `test/index.html`
+
+
+#### 联系
+1. *微信*: ambit_tsai
+1. *QQ群*: 663286147
+1. *邮箱*: ambit_tsai@qq.com
 
 
 #### 参考
