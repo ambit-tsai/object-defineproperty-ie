@@ -198,10 +198,8 @@ describe('getOwnPropertyDescriptors', function () {
     var desc = Object.getOwnPropertyDescriptors({});
     expect(desc).to.be.empty();
     
-    var people = {
-        name: 'Ambit-Tsai'
-    };
-    var desc = Object.getOwnPropertyDescriptors(people);
+    var people = {name: 'Ambit-Tsai'};
+    desc = Object.getOwnPropertyDescriptors(people);
     expect(desc).to.be.eql({
         name: {
             configurable: true,
