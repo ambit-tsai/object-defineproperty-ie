@@ -161,39 +161,28 @@
      * @returns {object} 
      */
     function generateDescriptor(oldDesc, newDesc) {
-        var desc = {};
+        var temp = {};
         if (oldDesc) {
-            assign(desc, oldDesc);
+            assign(temp, oldDesc);
             if (VALUE in newDesc || WRITABLE in newDesc) {
-                delete desc[GET];
-                delete desc[SET];
+                delete temp[GET];
+                delete temp[SET];
             } else if (GET in newDesc || SET in newDesc) {
-                delete desc[VALUE];
-                delete desc[WRITABLE];
+                delete temp[VALUE];
+                delete temp[WRITABLE];
             }
         }
+        assign(temp, newDesc);
 
-        desc[CONFIGURABLE] = !!(
-            CONFIGURABLE in newDesc 
-                ? newDesc[CONFIGURABLE] 
-                : desc[CONFIGURABLE]
-        );
-        desc[ENUMERABLE] = !!(
-            ENUMERABLE in newDesc 
-                ? newDesc[ENUMERABLE] 
-                : desc[ENUMERABLE]
-        );
-
+        var desc = {};
+        desc[CONFIGURABLE] = !!temp[CONFIGURABLE];
+        desc[ENUMERABLE] = !!temp[ENUMERABLE];
         if (GET in newDesc || SET in newDesc) {
-            desc[GET] = newDesc[GET] || UNDEFINED;
-            desc[SET] = newDesc[SET] || UNDEFINED;
+            desc[GET] = temp[GET];
+            desc[SET] = temp[SET];
         } else {
-            if (VALUE in newDesc) {
-                desc[VALUE] = newDesc[VALUE];
-            } else if (!(VALUE in desc)) {
-                desc[VALUE] = UNDEFINED;
-            }
-            desc[WRITABLE] = !!newDesc[WRITABLE];
+            desc[VALUE] = temp[VALUE];
+            desc[WRITABLE] = !!temp[WRITABLE];
         }
         return desc;
     }
