@@ -58,5 +58,15 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 ```
 
 
+#### Testing
+Accessing `test/index.html` with browser
+
+
+#### Contact Us
+1. *WeChat*: ambit_tsai
+1. *QQ Group*: 663286147
+1. *E-mail*: ambit_tsai@qq.com
+
+
 #### Reference
 1. <a href="https://www.cnblogs.com/rubylouvre/p/3598133.html" target="_blank">迷你MVVM框架avalon在兼容旧式IE做的努力</a>

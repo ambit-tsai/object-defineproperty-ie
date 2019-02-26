@@ -11,7 +11,7 @@
 1. 其他情况下，`Object.defineProperty` 将会返回一个新的 VB 对象；
 1. VB 对象不能随意增删属性；
 1. VB 对象没有 `[[Prototype]]` 或 `__proto__`；
-1. VB 对象的属性是可枚举的，即使描述符 `enumerable` 为 `false` ；
+1. 即使描述符 `enumerable` 为 `false` ，VB 对象的属性仍是可枚举的；
 
 
 #### 安装
@@ -56,6 +56,16 @@
     // }
 </script>
 ```
+
+
+#### 测试
+使用浏览器访问 `test/index.html`
+
+
+#### 联系
+1. *微信*: ambit_tsai
+1. *QQ群*: 663286147
+1. *邮箱*: ambit_tsai@qq.com
 
 
 #### 参考
