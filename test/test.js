@@ -104,8 +104,7 @@ describe('defineProperties# Basic support', function () {
     var obj = Object.defineProperties({}, {
         number: {
             enumerable: true,
-            value: 123,
-            writable: true
+            value: 123
         },
         string: {
             enumerable: true,
@@ -130,18 +129,6 @@ describe('defineProperties# Basic support', function () {
         array: {
             enumerable: true,
             value: []
-        },
-        getter: {
-            enumerable: true,
-            get: function () {
-                return this.number;
-            }
-        },
-        setter: {
-            enumerable: true,
-            set: function (val) {
-                this.number = val;
-            }
         }
     });
     expect(obj).to.be.eql({
@@ -152,21 +139,8 @@ describe('defineProperties# Basic support', function () {
         'null': null,
         object: {},
         array: [],
-        getter: 123,
-        setter: undefined
     });
-
-    // Setter and writable
-    obj.setter = 321;
-    expect(obj.number).to.be(321);
-
-    // Unwritable
-    obj.boolean = true;
-    expect(obj.boolean).to.be(false);
 });
-// expect(fn).to.throwException(function (e) { // get the exception object
-//     expect(e).to.be.a(SyntaxError);
-// });
 
 
 // Test `getOwnPropertyDescriptor`
