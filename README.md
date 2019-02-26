@@ -11,6 +11,7 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 1. In other case, `Object.defineProperty` will return a new VB object;
 1. VB object can't add or delete properties freely;
 1. VB object doesn't have `[[Prototype]]` or `__proto__`;
+1. The properties of VB object is enumerable even if descriptor `enumerable` is `false`;
 
 
 #### Installation
@@ -31,17 +32,17 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
-                return 'trigger `getter`';
+                return this.string;
             }
         },
         setter: {
-            set: function () {
-                alert('trigger `setter`');
+            set: function (value) {
+                this.string = value;
             }
         }
     });
     // newObj => {
-    //     getter: "trigger `getter`",
+    //     getter: "Ambit Tsai",
     //     setter: undefined,
     //     string: "Ambit Tsai"
     // }

@@ -11,6 +11,7 @@
 1. 其他情况下，`Object.defineProperty` 将会返回一个新的 VB 对象；
 1. VB 对象不能随意增删属性；
 1. VB 对象没有 `[[Prototype]]` 或 `__proto__`；
+1. VB 对象的属性是可枚举的，即使描述符 `enumerable` 为 `false` ；
 
 
 #### 安装
@@ -31,17 +32,17 @@
     var newObj = Object.defineProperties(oldObj, {
         getter: {
             get: function () {
-                return 'trigger `getter`';
+                return this.string;
             }
         },
         setter: {
-            set: function () {
-                alert('trigger `setter`');
+            set: function (value) {
+                this.string = value;
             }
         }
     });
     // newObj => {
-    //     getter: "trigger `getter`",
+    //     getter: "Ambit Tsai",
     //     setter: undefined,
     //     string: "Ambit Tsai"
     // }
