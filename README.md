@@ -7,11 +7,12 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 
 
 #### Notice
-1. Use native method for `Element` object in IE8;
-1. In other case, `Object.defineProperty` will return a new VB object;
-1. VB object can't add or delete properties freely;
-1. VB object doesn't have `[[Prototype]]` or `__proto__`;
-1. The properties of VB object is enumerable even if descriptor `enumerable` is `false`;
+1. Use native method for `Element` object in IE8
+1. In other case, `Object.defineProperty` will return a new VB object
+1. VB object can't add or delete properties freely
+1. VB object doesn't have `[[Prototype]]` or `__proto__`
+1. The properties of VB object is enumerable even if descriptor `enumerable` is `false`
+1. The property name of VB object can't contain `]`
 
 
 #### Installation
