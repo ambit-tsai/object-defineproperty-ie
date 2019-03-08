@@ -232,12 +232,11 @@
                 if (desc[WRITABLE]) {
                     buffer.push(
                         PUBLIC_PROPERTY + 'Get [' + prop + ']',
-                        '    On Error Resume Next',
-                        '    Set [' + prop + '] = ' + DESCRIPTOR + '.value',
-                        '    If Err.Number <> 0 Then',
+                        '    If isObject(' + DESCRIPTOR + '.value) Then',
+                        '      Set [' + prop + '] = ' + DESCRIPTOR + '.value',
+                        '    Else',
                         '      [' + prop + '] = ' + DESCRIPTOR + '.value',
                         '    End If',
-                        '    On Error Goto 0',
                         END_PROPERTY,
                         PUBLIC_PROPERTY + 'Let [' + prop + '](val)',
                         '    ' + DESCRIPTOR + '.value = val',
