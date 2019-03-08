@@ -109,11 +109,11 @@
             }
         }
 
-        var uid = window.setTimeout(function () {});    // generate an unique id
+        var uid = window.setTimeout(Object);    // generate an unique id
         var script = generateVbScript(descMap, uid);
         window.execScript(script, 'VBS');
-        obj = window['VB_factory_' + uid]();            // call factory function to create object
-        window.VB_cache[uid] = {                        // cache
+        obj = window['VB_factory_' + uid]();    // call factory function to create object
+        window.VB_cache[uid] = {                // cache
             obj: obj,
             desc: descMap
         };
