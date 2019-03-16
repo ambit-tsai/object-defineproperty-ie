@@ -13,7 +13,7 @@ function describe(name, func) {
     } catch(err) {
         console.error(err);
         el = document.createElement('span');
-        el.innerText = err.message;
+        el.innerText = '   ' + err.message;
         container.appendChild(el);
         container.className += ' unexpected';
     }
