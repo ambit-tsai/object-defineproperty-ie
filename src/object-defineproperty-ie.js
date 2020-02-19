@@ -20,20 +20,23 @@
     var SET = 'set';
 
 
-    var cacheMap = {};  // Cache the VB objects
+    var cacheMap = {};  // the container to cache VB objects
 
 
     // Sham for `defineProperty`
     if (Object[DEFINE_PROPERTY]) {
-        // In IE 8, `Object.defineProperty` 只对`Element`对象有效
         window.VbCache = cacheMap;
         try {
+            // In IE 8, `Object.defineProperty` is only effective on `Element` object, 
+            // `document` and `window`. The program will throw an exception when 
+            // `Object.defineProperty` works with other objects.
             Object[DEFINE_PROPERTY]({}, '', {});
         } catch(err) {
             (function () {
                 var defineProperty = Object[DEFINE_PROPERTY];
                 Object[DEFINE_PROPERTIES] = function (obj, props) {
                     if (obj instanceof Element || obj === document || obj === window) {
+                        // Use the native method for `Element` object, `document` and `window`
                         forEach(props, function (key, desc) {
                             defineProperty(obj, key, desc);
                         });
@@ -62,6 +65,7 @@
     // Sham for `defineProperties`
     if (!Object[DEFINE_PROPERTIES]) {
         if (/\[native code\]/.test(Object[DEFINE_PROPERTY].toString())) {
+            // Use the native method `Object.defineProperty`
             Object[DEFINE_PROPERTIES] = function (obj, props) {
                 forEach(props, function (key, desc) {
                     Object[DEFINE_PROPERTY](obj, key, desc);
@@ -78,7 +82,9 @@
     if (!Object[GET_OWN_PROPERTY_DESCRIPTOR]) {
         Object[GET_OWN_PROPERTY_DESCRIPTOR] = implementGetOwnPropertyDescriptor;
     } else if (Object[GET_OWN_PROPERTY_DESCRIPTOR](window, CONFIGURABLE + CONFIGURABLE)) {
-        // In IE 8, 获取不存在的属性，不会返回undefined
+        // In IE 8, `Object.getOwnPropertyDescriptor` will not return an `undefined` when 
+        // using it to get the descriptor of a property that do not exist, and it's only 
+        // effective on `Element` object, `document` and `window`.
         (function () {
             var getOwnPropertyDescriptor = Object[GET_OWN_PROPERTY_DESCRIPTOR];
             Object[GET_OWN_PROPERTY_DESCRIPTOR] = function (obj, key) {
@@ -153,7 +159,7 @@
 
 
     /**
-     * implement `Object.defineProperties`
+     * The internal implementation of `Object.defineProperties`
      * @param {object} obj 
      * @param {object} props 
      * @returns {object}
@@ -163,20 +169,21 @@
             throwTypeError('Method called on non-object');
         }
 
-        var descriptors = mergeDescriptors(Object[GET_OWN_PROPERTY_DESCRIPTOR](obj), props);
-        if (canAssignDirectly(descriptors)) {
+        // Assign directly
+        var descriptors = mergeDescriptors(Object[GET_OWN_PROPERTY_DESCRIPTORS](obj), props);
+        if (canAssignDirectlyByJudgingDescriptors(descriptors)) {
             forEach(descriptors, function (key, desc) {
                 obj[key] = desc[VALUE];
             });
             return obj;
         }
 
-        //
+        // Using VBScript
         var uid = window.setTimeout(Object);    // generate an unique id
         var script = generateVbScript(descriptors, uid);
-        window.execScript(script, 'VBS');
-        obj = window['VbFactory' + uid]();    // call factory function to create object
-        cacheMap[uid] = {                // cache
+        window.execScript(script, 'VBS');       // execute the VB script
+        obj = window['VbFactory' + uid]();      // use the factory function to create an object
+        cacheMap[uid] = {                       // cache the VB object
             obj: obj,
             props: descriptors
         };
@@ -185,12 +192,11 @@
 
 
     /**
-     * 判断是否可以直接赋值
+     * Check if the properties can be assign directly by judging descriptors
      * @param {object} descriptors 
      * @returns {boolean}
      */
-    function canAssignDirectly(descriptors) {
-        // 判断描述符，存在get set，writable configurable不为真
+    function canAssignDirectlyByJudgingDescriptors(descriptors) {
         for (var key in descriptors) {
             if (hasOwnProperty(descriptors, key)) {
                 var desc = descriptors[key];
@@ -204,7 +210,7 @@
 
 
     /**
-     * 合并描述符
+     * Merge descriptors from source to target
      * @param {object} target 
      * @param {object} source 
      * @returns {object}
@@ -253,7 +259,7 @@
 
 
     /**
-     * Generate VB script
+     * Generate the VB script
      * @param {object} descriptors 
      * @param {number} uid
      * @returns {string} VB script 
@@ -351,7 +357,7 @@
 
 
     /**
-     * implement `Object.getOwnPropertyDescriptor`
+     * The internal implementation of `Object.getOwnPropertyDescriptor`
      * @param {object} obj 
      * @param {string} key 
      * @returns {object}
@@ -359,7 +365,7 @@
     function implementGetOwnPropertyDescriptor(obj, key) {
         if (!hasOwnProperty(obj, key)) return;
         
-        // for the cached VB object
+        // For the cached VB object
         var desc;
         for (var uid in cacheMap) {
             if (hasOwnProperty(cacheMap, uid) && cacheMap[uid].obj === obj) {
@@ -368,7 +374,7 @@
             }
         }
         
-        // in other case
+        // In other case
         desc = {};
         desc[ENUMERABLE] = true;
         desc[CONFIGURABLE] = true;
