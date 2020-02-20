@@ -12,9 +12,9 @@
     <style type="text/css">
 		body {
 			font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
-            font-size: 14px;
+            font-size: 16px;
 		}
-        .result {
+        .result__item {
             color: green;
             border-width: 0 0 0 3px;
             border-style: solid;
@@ -22,19 +22,15 @@
             margin-bottom: 8px;
             padding-left: 4px;
         }
-        .result.unexpected {
+        .result__item.unexpected {
             color: red;
-        }
-        .result > .name {
-            font-size: 18px;
-            font-weight: bold;
-            margin-right: 8px;
         }
     </style>
 	
 	
 	<p>&gt;  test with expect.js 0.3.1</p>
-	<h2>Test Result</h2>
+    <h2>Test Result</h2>
+    <ol id="result"></ol>
 
     <script src="../dist/object-defineproperty-ie.js" type="text/javascript"></script>
     <script src="./expect.js" type="text/javascript"></script>

@@ -7,11 +7,12 @@
 
 
 #### 注意
-1. 在 IE8 中，对于 `Element` 对象将调用原生的方法；
-1. 其他情况下，`Object.defineProperty` 将会返回一个新的 VB 对象；
-1. VB 对象不能随意增删属性；
+1. 在 IE8 中，对于 `Element` 对象、`doucment` 与 `window` 将调用原生的 `defineProperty` 和 `getOwnPropertyDescriptor` 方法；
+1. 其他情况下，`defineProperty` 将会返回一个新的 VB 对象；
+1. VB 对象不能随意增删属性
 1. VB 对象没有 `[[Prototype]]` 或 `__proto__`；
-1. 即使描述符 `enumerable` 为 `false` ，VB 对象的属性仍是可枚举的；
+1. VB 对象的属性名不能包含特殊字符 `]`；
+1. VB 对象的属性是可枚举的，不受描述符 `enumerable` 的影响；
 
 
 #### 安装
@@ -59,7 +60,8 @@
 
 
 #### 测试
-使用浏览器访问 `test/index.html`
+1. 使用浏览器访问 `test/index.html`
+1. 已在IE6、IE7、IE8中进行测试
 
 
 #### 联系
