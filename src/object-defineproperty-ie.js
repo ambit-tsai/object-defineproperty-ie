@@ -37,6 +37,7 @@
                 Object[DEFINE_PROPERTIES] = function (obj, props) {
                     if (obj instanceof Element || obj === document || obj === window) {
                         // Use the native method for `Element` object, `document` and `window`
+                        assertDescriptors(props);
                         forEach(props, function (key, desc) {
                             defineProperty(obj, key, desc);
                         });
@@ -67,6 +68,7 @@
         if (/\[native code\]/.test(Object[DEFINE_PROPERTY].toString())) {
             // Use the native method `Object.defineProperty`
             Object[DEFINE_PROPERTIES] = function (obj, props) {
+                assertDescriptors(props);
                 forEach(props, function (key, desc) {
                     Object[DEFINE_PROPERTY](obj, key, desc);
                 });
@@ -112,6 +114,23 @@
 
 
 
+
+
+    /**
+     * Check whether the `descriptors` is valid
+     * @param {object.<string, object>} descriptors
+     */
+    function assertDescriptors(descriptors) {
+        var ERROR_MESSAGE = 'Property description must be an object: ';
+        if (!isObject(descriptors)) {
+            throwTypeError(ERROR_MESSAGE + descriptors);
+        }
+        forEach(descriptors, function (key, desc) {
+            if (!isObject(desc)) {
+                throwTypeError(ERROR_MESSAGE + desc);
+            }
+        });
+    }
 
 
     /**
@@ -168,6 +187,8 @@
         if (!isObject(obj)) {
             throwTypeError('Method called on non-object');
         }
+        
+        assertDescriptors(props);
 
         // Assign directly
         var descriptors = mergeDescriptors(Object[GET_OWN_PROPERTY_DESCRIPTORS](obj), props);
@@ -217,10 +238,6 @@
      */
     function mergeDescriptors(target, source) {
         forEach(source, function (key, sDesc) {
-            if (!isObject(sDesc)) {
-                throwTypeError('Property description must be an object');
-            }
-
             var tDesc = target[key];
             if (!tDesc) {
                 tDesc = target[key] = {};
@@ -238,10 +255,10 @@
                 delete tDesc[SET];
             } else if (GET in sDesc || SET in sDesc) {
                 if (sDesc[GET] !== UNDEFINED && typeof sDesc[GET] !== 'function') {
-                    throwTypeError('Getter must be a function');
+                    throwTypeError('Getter must be a function: ' + sDesc[GET]);
                 }
                 if (sDesc[SET] !== UNDEFINED && typeof sDesc[SET] !== 'function') {
-                    throwTypeError('Setter must be a function');
+                    throwTypeError('Setter must be a function: ' + sDesc[SET]);
                 }
                 tDesc[GET] = GET in sDesc ? sDesc[GET] : tDesc[GET];
                 tDesc[SET] = SET in sDesc ? sDesc[SET] : tDesc[SET];
