@@ -290,9 +290,10 @@
 
         for (var key in descriptors) {
             var prop = '[' + key + ']';
+            var PARAM = key === 'val' ? 'v' : 'val';
             var DECLARATION_GET = PUBLIC_PROPERTY + 'Get ' + prop;
-            var DECLARATION_LET = PUBLIC_PROPERTY + 'Let ' + prop + '(val)';
-            var DECLARATION_SET = PUBLIC_PROPERTY + 'Set ' + prop + '(val)';
+            var DECLARATION_LET = PUBLIC_PROPERTY + 'Let ' + prop + '(' + PARAM + ')';
+            var DECLARATION_SET = PUBLIC_PROPERTY + 'Set ' + prop + '(' + PARAM + ')';
             var DESCRIPTOR = 'Window.VbCache.[' + uid + '].props.' + prop;
             var desc = descriptors[key];
             if (VALUE in desc) {
@@ -306,10 +307,10 @@
                         '    End If',
                         END_PROPERTY,
                         DECLARATION_LET,
-                        '    ' + DESCRIPTOR + '.value = val',
+                        '    ' + DESCRIPTOR + '.value = ' + PARAM,
                         END_PROPERTY,
                         DECLARATION_SET,
-                        '    Set ' + DESCRIPTOR + '.value = val',
+                        '    Set ' + DESCRIPTOR + '.value = ' + PARAM,
                         END_PROPERTY
                     );
                 } else {
@@ -346,10 +347,10 @@
                 if (desc[SET]) {
                     buffer.push(
                         DECLARATION_LET,
-                        '    Call ' + DESCRIPTOR + '.set.call(ME, val)',
+                        '    Call ' + DESCRIPTOR + '.set.call(ME, ' + PARAM + ')',
                         END_PROPERTY,
                         DECLARATION_SET,
-                        '    Call ' + DESCRIPTOR + '.set.call(ME, val)',
+                        '    Call ' + DESCRIPTOR + '.set.call(ME, ' + PARAM + ')',
                         END_PROPERTY
                     );
                 } else {
