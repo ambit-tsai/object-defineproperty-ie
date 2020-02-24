@@ -276,6 +276,18 @@
 
 
     /**
+     * Call the getter function, then return an object
+     * @param {function} getter
+     * @param {object} ctx
+     */
+    window.callGetterReturnObject = function (getter, ctx) {
+        return {
+            value: getter.call(ctx)
+        };
+    };
+
+
+    /**
      * Generate the VB script
      * @param {object} descriptors 
      * @param {number} uid
@@ -294,7 +306,7 @@
             var DECLARATION_GET = PUBLIC_PROPERTY + 'Get ' + prop;
             var DECLARATION_LET = PUBLIC_PROPERTY + 'Let ' + prop + '(' + PARAM + ')';
             var DECLARATION_SET = PUBLIC_PROPERTY + 'Set ' + prop + '(' + PARAM + ')';
-            var DESCRIPTOR = 'Window.VbCache.[' + uid + '].props.' + prop;
+            var DESCRIPTOR = 'VbCache.[' + uid + '].props.' + prop;
             var desc = descriptors[key];
             if (VALUE in desc) {
                 if (desc[WRITABLE]) {
@@ -330,12 +342,12 @@
                 if (desc[GET]) {
                     buffer.push(
                         DECLARATION_GET,
-                        '    On Error Resume Next',
-                        '    Set ' + prop + ' = ' + DESCRIPTOR + '.get.call(ME)',
-                        '    If Err.Number <> 0 Then',
-                        '      ' + prop + ' = ' + DESCRIPTOR + '.get.call(ME)',
+                        '    Set [_' + key + '] = ' + 'callGetterReturnObject(' + DESCRIPTOR + '.get, ' + 'ME)',
+                        '    If isObject([_' + key + '].value) Then',
+                        '      Set ' + prop + ' = [_' + key + '].value',
+                        '    Else',
+                        '      ' + prop + ' = [_' + key + '].value',
                         '    End If',
-                        '    On Error Goto 0',
                         END_PROPERTY
                     );
                 } else {
@@ -347,10 +359,10 @@
                 if (desc[SET]) {
                     buffer.push(
                         DECLARATION_LET,
-                        '    Call ' + DESCRIPTOR + '.set.call(ME, ' + PARAM + ')',
+                        '    ' + DESCRIPTOR + '.set.call ME, ' + PARAM,
                         END_PROPERTY,
                         DECLARATION_SET,
-                        '    Call ' + DESCRIPTOR + '.set.call(ME, ' + PARAM + ')',
+                        '    ' + DESCRIPTOR + '.set.call ME, ' + PARAM,
                         END_PROPERTY
                     );
                 } else {
