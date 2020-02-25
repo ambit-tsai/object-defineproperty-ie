@@ -20,12 +20,8 @@
     var SET = 'set';
 
 
-    var cacheMap = {};  // the container to cache VB objects
-
-
     // Sham for `defineProperty`
     if (Object[DEFINE_PROPERTY]) {
-        window.VbCache = cacheMap;
         try {
             // In IE 8, `Object.defineProperty` is only effective on `Element` object, 
             // `document` and `window`. The program will throw an exception when 
@@ -54,7 +50,6 @@
             }());
         }
     } else {
-        window.VbCache = cacheMap;
         Object[DEFINE_PROPERTY] = function (obj, key, desc) {
             var props = {};
             props[key] = desc;
@@ -114,6 +109,62 @@
 
 
 
+
+
+    /**
+     * The internal storage space for VB object
+     * @constructor
+     * @param {object} obj 
+     * @param {object} props 
+     */
+    function VbStorage(obj, props) {
+        this.obj = obj;                 // original object
+        this.props = props;             // descriptors
+        this.keys = {};                 // the key map
+        this.canGetStorage = false;     // a flag used to judge whether can get the storage object
+        this.getterReturn = UNDEFINED;  // a variable that cache the getter return value
+    }
+
+
+    window._$VbStorage = VbStorage;      // exposed to global
+
+
+    /**
+     * @param {number} index
+     * @returns {boolean}
+     */
+    VbStorage.prototype.getter = function (index) {
+        if (this.canGetStorage) {
+            this.getterReturn = this;
+            this.canGetStorage = false;
+            return true;
+        }
+        var key = this.keys[index];
+        var desc = this.props[key];
+        this.getterReturn = desc[GET] 
+            ? desc[GET].call(this.obj)
+            : desc[VALUE];
+        return isObject(this.getterReturn);
+    };
+
+
+    /**
+     * @param {number} index
+     * @param {any} val
+     */
+    VbStorage.prototype.setter = function (index, val) {
+        if (val === VbStorage) {
+            this.canGetStorage = true;
+            return;
+        }
+        var key = this.keys[index];
+        var desc = this.props[key];
+        if (desc[WRITABLE]) {
+            desc[VALUE] = val;
+        } else if (desc[SET]) {
+            desc[SET].call(this.obj, val);
+        }
+    };
 
 
     /**
@@ -199,16 +250,7 @@
             return obj;
         }
 
-        // Using VBScript
-        var uid = window.setTimeout(Object);    // generate an unique id
-        var script = generateVbScript(descriptors, uid);
-        window.execScript(script, 'VBS');       // execute the VB script
-        obj = window['VbFactory' + uid]();      // use the factory function to create an object
-        cacheMap[uid] = {                       // cache the VB object
-            obj: obj,
-            props: descriptors
-        };
-        return obj;
+        return createVbObject(obj, descriptors);
     }
 
 
@@ -276,113 +318,64 @@
 
 
     /**
-     * Call the getter function, then return an object
-     * @param {function} getter
-     * @param {object} ctx
-     */
-    window.callGetterReturnObject = function (getter, ctx) {
-        return {
-            value: getter.call(ctx)
-        };
-    };
-
-
-    /**
-     * Generate the VB script
+     * VB object factory
+     * @param {object} obj original object
      * @param {object} descriptors 
-     * @param {number} uid
-     * @returns {string} VB script 
+     * @returns {object} VB object 
      */
-    function generateVbScript(descriptors, uid) {
-        var PUBLIC_PROPERTY = '  Public Property ';
-        var END_PROPERTY = '  End Property';
+    function createVbObject(obj, descriptors) {
+        // Generate VB script
+        var uid = window.setTimeout(Object);    // generate an unique id
         var buffer = [
-            'Class VbClass' + uid
+            'Class VbClass' + uid,
+            '  Private [__vb__]'                // private property to cache internal data
         ];
-
-        for (var key in descriptors) {
+        var i = 0;
+        var storage = new VbStorage(obj, descriptors);
+        forEach(descriptors, function (key) {
             var prop = '[' + key + ']';
-            var PARAM = key === 'val' ? 'v' : 'val';
-            var DECLARATION_GET = PUBLIC_PROPERTY + 'Get ' + prop;
-            var DECLARATION_LET = PUBLIC_PROPERTY + 'Let ' + prop + '(' + PARAM + ')';
-            var DECLARATION_SET = PUBLIC_PROPERTY + 'Set ' + prop + '(' + PARAM + ')';
-            var DESCRIPTOR = 'VbCache.[' + uid + '].props.' + prop;
-            var desc = descriptors[key];
-            if (VALUE in desc) {
-                if (desc[WRITABLE]) {
-                    buffer.push(
-                        DECLARATION_GET,
-                        '    If isObject(' + DESCRIPTOR + '.value) Then',
-                        '      Set ' + prop + ' = ' + DESCRIPTOR + '.value',
-                        '    Else',
-                        '      ' + prop + ' = ' + DESCRIPTOR + '.value',
-                        '    End If',
-                        END_PROPERTY,
-                        DECLARATION_LET,
-                        '    ' + DESCRIPTOR + '.value = ' + PARAM,
-                        END_PROPERTY,
-                        DECLARATION_SET,
-                        '    Set ' + DESCRIPTOR + '.value = ' + PARAM,
-                        END_PROPERTY
-                    );
-                } else {
-                    buffer.push(
-                        DECLARATION_GET,
-                        '    ' + (
-                            isObject(desc[VALUE]) ? 'Set ' : ''     // use `Set` for object
-                        ) + prop + ' = ' + DESCRIPTOR + '.value',
-                        END_PROPERTY,
-                        DECLARATION_LET,
-                        END_PROPERTY,
-                        DECLARATION_SET,
-                        END_PROPERTY
-                    );
-                }
+            var arg = key === 'val' ? 'v' : 'val';
+            buffer.push(
+                '  Public Property Get ' + prop,
+                '    If [__vb__].getter(' + i + ') Then',
+                '      Set ' + prop + ' = [__vb__].getterReturn',
+                '    Else',
+                '      ' + prop + ' = [__vb__].getterReturn',
+                '    End If',
+                '  End Property',
+                '  Public Property Let ' + prop + '(' + arg + ')',
+                '    [__vb__].setter ' + i + ', ' + arg,
+                '  End Property',
+                '  Public Property Set ' + prop + '(' + arg + ')'
+            );
+            if (i) {
+                buffer.push(
+                    '    [__vb__].setter ' + i + ', ' + arg
+                );
             } else {
-                if (desc[GET]) {
-                    buffer.push(
-                        DECLARATION_GET,
-                        '    Set [_' + key + '] = ' + 'callGetterReturnObject(' + DESCRIPTOR + '.get, ' + 'ME)',
-                        '    If isObject([_' + key + '].value) Then',
-                        '      Set ' + prop + ' = [_' + key + '].value',
-                        '    Else',
-                        '      ' + prop + ' = [_' + key + '].value',
-                        '    End If',
-                        END_PROPERTY
-                    );
-                } else {
-                    buffer.push(
-                        DECLARATION_GET,
-                        END_PROPERTY
-                    );
-                }
-                if (desc[SET]) {
-                    buffer.push(
-                        DECLARATION_LET,
-                        '    ' + DESCRIPTOR + '.set.call ME, ' + PARAM,
-                        END_PROPERTY,
-                        DECLARATION_SET,
-                        '    ' + DESCRIPTOR + '.set.call ME, ' + PARAM,
-                        END_PROPERTY
-                    );
-                } else {
-                    buffer.push(
-                        DECLARATION_LET,    // define empty `setter` for avoiding errors
-                        END_PROPERTY,
-                        DECLARATION_SET,
-                        END_PROPERTY
-                    );
-                }
+                // Initialize `__vb__` at index 0
+                buffer.push(
+                    '    If isEmpty([__vb__]) Then',
+                    '      Set [__vb__] = ' + arg,
+                    '    Else',
+                    '      [__vb__].setter ' + i + ', ' + arg,
+                    '    End If'
+                );
             }
-        }
-
+            buffer.push('  End Property');
+            storage.keys[i++] = key;
+        });
         buffer.push(
             'End Class',
             'Function VbFactory' + uid + '()',
             '  Set VbFactory' + uid + ' = New VbClass' + uid,
             'End Function'
         );
-        return buffer.join('\r\n');
+        
+        window.execScript(buffer.join('\r\n'), 'VBS');  // execute the VB script
+        var vbObj = window['VbFactory' + uid]();        // use the factory to create an object
+        vbObj[ storage.keys[0] ] = storage;             // initialize property `__vb__`
+        return vbObj;
     }
 
 
@@ -395,17 +388,15 @@
     function implementGetOwnPropertyDescriptor(obj, key) {
         if (!hasOwnProperty(obj, key)) return;
         
-        // For the cached VB object
-        var desc;
-        for (var uid in cacheMap) {
-            if (hasOwnProperty(cacheMap, uid) && cacheMap[uid].obj === obj) {
-                desc = cacheMap[uid].props[key];
-                return desc && assign({}, desc);
-            }
+        // For VB object
+        if (!obj.valueOf) {
+            obj[key] = VbStorage;
+            var storage = obj[key];
+            return assign({}, storage.props[key]);
         }
         
         // In other case
-        desc = {};
+        var desc = {};
         desc[ENUMERABLE] = true;
         desc[CONFIGURABLE] = true;
         desc[VALUE] = obj[key];
