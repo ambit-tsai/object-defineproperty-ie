@@ -388,11 +388,16 @@
     function implementGetOwnPropertyDescriptor(obj, key) {
         if (!hasOwnProperty(obj, key)) return;
         
-        // For VB object
-        if (!obj.valueOf) {
-            obj[key] = VbStorage;
-            var storage = obj[key];
-            return assign({}, storage.props[key]);
+        // VB object
+        if (!('__vb__' in obj)) {
+            try {
+                obj.__vb__ = 0; // private VB property can't be assigned
+                delete obj.__vb__;
+            } catch(err) {
+                obj[key] = VbStorage;
+                var storage = obj[key];
+                return assign({}, storage.props[key]);
+            }
         }
         
         // In other case
