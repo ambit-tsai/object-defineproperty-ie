@@ -400,12 +400,18 @@
             }
         }
         
-        // In other case
+        // Others
         var desc = {};
-        desc[ENUMERABLE] = true;
-        desc[CONFIGURABLE] = true;
         desc[VALUE] = obj[key];
         desc[WRITABLE] = true;
+        desc[CONFIGURABLE] = true;
+        desc[ENUMERABLE] = false;
+        for (var prop in obj) {
+            if (prop === key) {
+                desc[ENUMERABLE] = true;
+                break;
+            }
+        }
         return desc;
     }
     
