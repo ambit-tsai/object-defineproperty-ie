@@ -27,6 +27,9 @@ function describe(name, fn) {
 
 
 describe('defineProperty - `value`', function () {
+    var obj = Object.defineProperty({}, 'prop', {});
+    expect(obj.prop).to.be(undefined);
+
     var obj = Object.defineProperty({}, 'prop', {value: undefined});
     expect(obj.prop).to.be(undefined);
 
@@ -92,7 +95,7 @@ describe('defineProperty - `get`', function () {
     expect(obj.prop).to.be(undefined);
 
     expect(function () {
-        Object.defineProperty({}, 'prop', {get: 'non-object'});
+        Object.defineProperty({}, 'prop', {get: 'non-function'});
     }).to.throwException(function (ex) {
         expect(ex).to.be.a(TypeError);
     });
@@ -118,7 +121,7 @@ describe('defineProperty - `set`', function () {
     expect(obj.prop).to.be(undefined);
 
     expect(function () {
-        Object.defineProperty({}, 'prop', {set: 'non-object'});
+        Object.defineProperty({}, 'prop', {set: 'non-function'});
     }).to.throwException(function (ex) {
         expect(ex).to.be.a(TypeError);
     });
@@ -176,7 +179,7 @@ describe('defineProperty - abnormal input', function () {
 
     expect(function () {
         Object.defineProperty({}, 'prop', {
-            value: 123,
+            writable: true,
             set: function () {}
         });
     }).to.throwException(function (ex) {
@@ -186,6 +189,9 @@ describe('defineProperty - abnormal input', function () {
 
 
 describe('defineProperties - basic functions', function () {
+    var obj = Object.defineProperties({}, {});
+    expect(obj).to.be.empty();
+
     var obj = Object.defineProperties({}, {
         writable: {
             value: undefined,
