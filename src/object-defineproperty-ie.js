@@ -7,11 +7,13 @@
  */
 (function (window, Object) {
     // Constant variables
-    var UNDEFINED;      // => undefined
+    var UNDEFINED;  // => undefined
     var DEFINE_PROPERTY = 'defineProperty';
     var DEFINE_PROPERTIES = 'defineProperties';
     var GET_OWN_PROPERTY_DESCRIPTOR = 'getOwnPropertyDescriptor';
-    var GET_OWN_PROPERTY_DESCRIPTORS = GET_OWN_PROPERTY_DESCRIPTOR + 's';   // => getOwnPropertyDescriptors
+    var GET_OWN_PROPERTY_DESCRIPTORS = GET_OWN_PROPERTY_DESCRIPTOR + 's';   // => "getOwnPropertyDescriptors"
+    var DESCRIPTOR_NOT_OBJECT = 'Property description must be an object: ';
+    var VB_PROTOTYPE = '__VB_PROTOTYPE__';
     var ENUMERABLE = 'enumerable';
     var CONFIGURABLE = 'configurable';
     var VALUE = 'value';
@@ -28,26 +30,26 @@
             // `Object.defineProperty` works with other objects.
             Object[DEFINE_PROPERTY]({}, '', {});
         } catch(err) {
-            (function () {
-                var defineProperty = Object[DEFINE_PROPERTY];
-                Object[DEFINE_PROPERTIES] = function (obj, props) {
-                    if (obj instanceof Element || obj === document || obj === window) {
-                        // Use the native method for `Element` object, `document` and `window`
-                        assertDescriptors(props);
-                        forEach(props, function (key, desc) {
-                            defineProperty(obj, key, desc);
-                        });
-                        return obj;
-                    } else {
-                        return implementDefineProperties(obj, props);
+            var _defineProperty = Object[DEFINE_PROPERTY];
+            Object[DEFINE_PROPERTIES] = function (obj, props) {
+                if (obj instanceof Element || obj === document || obj === window) {
+                    // Use the native method for `Element` object, `document` and `window`
+                    if (!isObject(props)) {
+                        throwTypeError(DESCRIPTOR_NOT_OBJECT + props);
                     }
-                };
-                Object[DEFINE_PROPERTY] = function (obj, key, desc) {
-                    var props = {};
-                    props[key] = desc;
-                    return Object[DEFINE_PROPERTIES](obj, props);
-                };
-            }());
+                    forEach(props, function (key, desc) {
+                        _defineProperty(obj, key, desc);
+                    });
+                    return obj;
+                } else {
+                    return implementDefineProperties(obj, props);
+                }
+            };
+            Object[DEFINE_PROPERTY] = function (obj, key, desc) {
+                var props = {};
+                props[key] = desc;
+                return Object[DEFINE_PROPERTIES](obj, props);
+            };
         }
     } else {
         Object[DEFINE_PROPERTY] = function (obj, key, desc) {
@@ -63,7 +65,9 @@
         if (/\[native code\]/.test(Object[DEFINE_PROPERTY].toString())) {
             // Use the native method `Object.defineProperty`
             Object[DEFINE_PROPERTIES] = function (obj, props) {
-                assertDescriptors(props);
+                if (!isObject(props)) {
+                    throwTypeError(DESCRIPTOR_NOT_OBJECT + props);
+                }
                 forEach(props, function (key, desc) {
                     Object[DEFINE_PROPERTY](obj, key, desc);
                 });
@@ -82,26 +86,24 @@
         // In IE 8, `Object.getOwnPropertyDescriptor` will not return an `undefined` when 
         // using it to get the descriptor of a property that do not exist, and it's only 
         // effective on `Element` object, `document` and `window`.
-        (function () {
-            var getOwnPropertyDescriptor = Object[GET_OWN_PROPERTY_DESCRIPTOR];
-            Object[GET_OWN_PROPERTY_DESCRIPTOR] = function (obj, key) {
-                if (obj instanceof Element || obj === document || obj === window) {
-                    return hasOwnProperty(obj, key) ? getOwnPropertyDescriptor(obj, key) : UNDEFINED;
-                } else {
-                    return implementGetOwnPropertyDescriptor(obj, key);
-                }
-            };
-        }());
+        var _getOwnPropertyDescriptor = Object[GET_OWN_PROPERTY_DESCRIPTOR];
+        Object[GET_OWN_PROPERTY_DESCRIPTOR] = function (obj, key) {
+            if (obj instanceof Element || obj === document || obj === window) {
+                return hasOwnProperty(obj, key) ? _getOwnPropertyDescriptor(obj, key) : UNDEFINED;
+            } else {
+                return implementGetOwnPropertyDescriptor(obj, key);
+            }
+        };
     }
 
 
     // Shim for `getOwnPropertyDescriptors`
     if (!Object[GET_OWN_PROPERTY_DESCRIPTORS]) {
         Object[GET_OWN_PROPERTY_DESCRIPTORS] = function (obj) {
-            var descriptors = {}, key, descriptor;
+            var descriptors = {}, key, desc;
             for (key in obj) {
-                descriptor = Object[GET_OWN_PROPERTY_DESCRIPTOR](obj, key);
-                if (descriptor) descriptors[key] = descriptor;
+                desc = Object[GET_OWN_PROPERTY_DESCRIPTOR](obj, key);
+                if (desc) descriptors[key] = desc;
             }
             return descriptors;
         };
@@ -112,75 +114,21 @@
 
 
     /**
-     * The internal storage space for VB object
-     * @constructor
-     * @param {object} obj 
-     * @param {object} props 
+     * Check if value is the language type of Object
+     * @param {any} value 
+     * @returns {boolean}
      */
-    function VbStorage(obj, props) {
-        this.obj = obj;                 // original object
-        this.props = props;             // descriptors
-        this.keys = {};                 // the key map
-        this.canGetStorage = false;     // a flag used to judge whether can get the storage object
-        this.getterReturn = UNDEFINED;  // a variable that cache the getter return value
+    function isObject(value) {
+        return value && (typeof value === 'object' || typeof value === 'function');
     }
 
 
-    window._$VbStorage = VbStorage;      // exposed to global
-
-
     /**
-     * @param {number} index
-     * @returns {boolean}
+     * Throw a type error
+     * @param {string} message 
      */
-    VbStorage.prototype.getter = function (index) {
-        if (this.canGetStorage) {
-            this.getterReturn = this;
-            this.canGetStorage = false;
-            return true;
-        }
-        var key = this.keys[index];
-        var desc = this.props[key];
-        this.getterReturn = desc[GET] 
-            ? desc[GET].call(this.obj)
-            : desc[VALUE];
-        return isObject(this.getterReturn);
-    };
-
-
-    /**
-     * @param {number} index
-     * @param {any} val
-     */
-    VbStorage.prototype.setter = function (index, val) {
-        if (val === VbStorage) {
-            this.canGetStorage = true;
-            return;
-        }
-        var key = this.keys[index];
-        var desc = this.props[key];
-        if (desc[WRITABLE]) {
-            desc[VALUE] = val;
-        } else if (desc[SET]) {
-            desc[SET].call(this.obj, val);
-        }
-    };
-
-
-    /**
-     * Check whether the `descriptors` is valid
-     * @param {object.<string, object>} descriptors
-     */
-    function assertDescriptors(descriptors) {
-        var ERROR_MESSAGE = 'Property description must be an object: ';
-        if (!isObject(descriptors)) {
-            throwTypeError(ERROR_MESSAGE + descriptors);
-        }
-        forEach(descriptors, function (key, desc) {
-            if (!isObject(desc)) {
-                throwTypeError(ERROR_MESSAGE + desc);
-            }
-        });
+    function throwTypeError(message) {
+        throw new TypeError(message);
     }
 
 
@@ -210,25 +158,6 @@
 
 
     /**
-     * Check if value is the language type of Object
-     * @param {any} value 
-     * @returns {boolean}
-     */
-    function isObject(value) {
-        return value && (typeof value === 'object' || typeof value === 'function');
-    }
-
-
-    /**
-     * Throw a type error
-     * @param {string} message 
-     */
-    function throwTypeError(message) {
-        throw new TypeError(message);
-    }
-
-
-    /**
      * The internal implementation of `Object.defineProperties`
      * @param {object} obj 
      * @param {object} props 
@@ -238,143 +167,229 @@
         if (!isObject(obj)) {
             throwTypeError('Method called on non-object');
         }
-        
-        assertDescriptors(props);
+        if (!isObject(props)) {
+            throwTypeError(DESCRIPTOR_NOT_OBJECT + props);
+        }
 
-        // Assign directly
-        var descriptors = mergeDescriptors(Object[GET_OWN_PROPERTY_DESCRIPTORS](obj), props);
-        if (canAssignDirectlyByJudgingDescriptors(descriptors)) {
-            forEach(descriptors, function (key, desc) {
-                obj[key] = desc[VALUE];
+        var newProps = Object[GET_OWN_PROPERTY_DESCRIPTORS](obj);
+        var isReactive, hasNewProperty;
+        forEach(props, function (key, desc) {
+            if (!isReactive && (
+                GET in desc || SET in desc || !desc[WRITABLE] || !desc[CONFIGURABLE]
+            )) {
+                isReactive = true;
+            }
+            if (!hasOwnProperty(newProps, key)) {
+                hasNewProperty = true;
+                newProps[key] = {};
+            }
+            mergeDescriptor(key, newProps[key], desc);
+        });
+
+        if (isVbObject(obj)) {
+            if (!hasNewProperty) {
+                getVbPrototypeOf(obj).props = newProps;
+                return obj;
+            }
+        } else if (!isReactive) {
+            forEach(props, function (key, desc) {
+                if (VALUE in desc) {
+                    obj[key] = desc[VALUE];
+                }
             });
             return obj;
         }
-
-        return createVbObject(obj, descriptors);
+        
+        return createVbObject(newProps);
     }
 
 
     /**
-     * Check if the properties can be assign directly by judging descriptors
-     * @param {object} descriptors 
+     * Check if value is a VB object
+     * @param {object} obj
      * @returns {boolean}
      */
-    function canAssignDirectlyByJudgingDescriptors(descriptors) {
-        for (var key in descriptors) {
-            if (hasOwnProperty(descriptors, key)) {
-                var desc = descriptors[key];
-                if (GET in desc || SET in desc || !desc[WRITABLE] || !desc[CONFIGURABLE]) {
-                    return false;
-                }
+    function isVbObject(obj) {
+        if (!(VB_PROTOTYPE in obj)) {
+            try {
+                obj[VB_PROTOTYPE] = 0;  // private VB property can't be assigned
+                delete obj[VB_PROTOTYPE];
+            } catch(err) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
 
     /**
-     * Merge descriptors from source to target
-     * @param {object} target 
-     * @param {object} source 
+     * Get the prototype of VB object
+     * @param {object} vbObj 
      * @returns {object}
      */
-    function mergeDescriptors(target, source) {
-        forEach(source, function (key, sDesc) {
-            var tDesc = target[key];
-            if (!tDesc) {
-                tDesc = target[key] = {};
-            } else if (!tDesc[CONFIGURABLE]) {
-                throwTypeError('Cannot redefine property: ' + key);
-            }
+    function getVbPrototypeOf(vbObj) {
+        for (var key in vbObj) {
+            vbObj[key] = VbPrototype;
+            return vbObj[key];
+        }
+    }
 
-            if (VALUE in sDesc || WRITABLE in sDesc) {
-                if (GET in sDesc || SET in sDesc) {
-                    throwTypeError('Cannot both specify accessors and a value or writable attribute');
-                }
-                tDesc[VALUE] = VALUE in sDesc ? sDesc[VALUE] : tDesc[VALUE];
-                tDesc[WRITABLE] = !!(WRITABLE in sDesc ? sDesc[WRITABLE] : tDesc[WRITABLE]);
-                delete tDesc[GET];
-                delete tDesc[SET];
-            } else if (GET in sDesc || SET in sDesc) {
-                if (sDesc[GET] !== UNDEFINED && typeof sDesc[GET] !== 'function') {
-                    throwTypeError('Getter must be a function: ' + sDesc[GET]);
-                }
-                if (sDesc[SET] !== UNDEFINED && typeof sDesc[SET] !== 'function') {
-                    throwTypeError('Setter must be a function: ' + sDesc[SET]);
-                }
-                tDesc[GET] = GET in sDesc ? sDesc[GET] : tDesc[GET];
-                tDesc[SET] = SET in sDesc ? sDesc[SET] : tDesc[SET];
-                delete tDesc[VALUE];
-                delete tDesc[WRITABLE];
-            } else if (!(GET in tDesc)) {
-                tDesc[VALUE] = UNDEFINED;
-                tDesc[WRITABLE] = false;
+
+    window._getVbPrototypeOf = getVbPrototypeOf;    // exposed to global
+
+
+    /**
+     * An internal slot
+     * @constructor
+     * @param {object} descriptors
+     */
+    function VbPrototype(descriptors) {
+        this.props = descriptors;
+        this.keyMap = {};
+        this.canGetProto = UNDEFINED;   // a flag used to judge whether return prototype
+        this.getterReturn = UNDEFINED;  // a variable that cache the getter return value
+    }
+
+
+    /**
+     * @param {number} index
+     * @returns {boolean}
+     */
+    VbPrototype.prototype.getter = function (index, ctx) {
+        if (this.canGetProto === index) {
+            this.getterReturn = this;
+            this.canGetProto = UNDEFINED;
+            return true;
+        }
+        var key = this.keyMap[index];
+        var desc = this.props[key];
+        this.getterReturn = desc[GET] 
+            ? desc[GET].call(ctx)
+            : desc[VALUE];
+        return isObject(this.getterReturn);
+    };
+
+
+    /**
+     * @param {number} index
+     * @param {any} val
+     */
+    VbPrototype.prototype.setter = function (index, ctx, val) {
+        // `VbPrototype` is used as a key to get prototype
+        if (val === VbPrototype) {
+            this.canGetProto = index;
+            return;
+        }
+        var key = this.keyMap[index];
+        var desc = this.props[key];
+        if (desc[WRITABLE]) {
+            desc[VALUE] = val;
+        } else if (desc[SET]) {
+            desc[SET].call(ctx, val);
+        }
+    };
+
+
+    /**
+     * Merge descriptor from source to target
+     * @param {string} prop 
+     * @param {object} target 
+     * @param {object} source 
+     */
+    function mergeDescriptor(prop, target, source) {
+        if (target[CONFIGURABLE] === false) {
+            throwTypeError('Cannot redefine property: ' + prop);
+        }
+        if (!isObject(source)) {
+            throwTypeError(DESCRIPTOR_NOT_OBJECT + source);
+        }
+
+        if (VALUE in source || WRITABLE in source) {
+            if (GET in source || SET in source) {
+                throwTypeError('Cannot both specify accessors and a value or writable attribute');
             }
-            tDesc[ENUMERABLE] = !!(ENUMERABLE in sDesc ? sDesc[ENUMERABLE] : tDesc[ENUMERABLE]);
-            tDesc[CONFIGURABLE] = !!(CONFIGURABLE in sDesc ? sDesc[CONFIGURABLE] : tDesc[CONFIGURABLE]);
-        });
-        return target;
+            target[VALUE] = VALUE in source ? source[VALUE] : target[VALUE];
+            target[WRITABLE] = !!(WRITABLE in source ? source : target)[WRITABLE];
+            delete target[GET];
+            delete target[SET];
+        } else if (GET in source || SET in source) {
+            if (source[GET] !== UNDEFINED && typeof source[GET] !== 'function') {
+                throwTypeError('Getter must be a function: ' + source[GET]);
+            }
+            if (source[SET] !== UNDEFINED && typeof source[SET] !== 'function') {
+                throwTypeError('Setter must be a function: ' + source[SET]);
+            }
+            target[GET] = GET in source ? source[GET] : target[GET];
+            target[SET] = SET in source ? source[SET] : target[SET];
+            delete target[VALUE];
+            delete target[WRITABLE];
+        } else if (!(ENUMERABLE in target)) {
+            target[VALUE] = UNDEFINED;
+            target[WRITABLE] = false;
+        }
+        target[ENUMERABLE] = !!(ENUMERABLE in source ? source : target)[ENUMERABLE];
+        target[CONFIGURABLE] = !!(CONFIGURABLE in source ? source : target)[CONFIGURABLE];
     }
 
 
     /**
      * VB object factory
-     * @param {object} obj original object
      * @param {object} descriptors 
      * @returns {object} VB object 
      */
-    function createVbObject(obj, descriptors) {
+    function createVbObject(descriptors) {
         // Generate VB script
-        var uid = window.setTimeout(Object);    // generate an unique id
+        var UID = window.setTimeout(Object);    // generate an unique id
+        var PROTO = '[' + VB_PROTOTYPE + ']';   // => "[__VB_PROTOTYPE__]"
         var buffer = [
-            'Class VbClass' + uid,
-            '  Private [__vb__]'                // private property to cache internal data
+            'Class VbClass' + UID,
+            '  Private ' + PROTO
         ];
         var i = 0;
-        var storage = new VbStorage(obj, descriptors);
+        var proto = new VbPrototype(descriptors);
         forEach(descriptors, function (key) {
             var prop = '[' + key + ']';
             var arg = key === 'val' ? 'v' : 'val';
             buffer.push(
                 '  Public Property Get ' + prop,
-                '    If [__vb__].getter(' + i + ') Then',
-                '      Set ' + prop + ' = [__vb__].getterReturn',
+                '    If ' + PROTO + '.getter(' + i + ', ME) Then',
+                '      Set ' + prop + ' = ' + PROTO + '.getterReturn',
                 '    Else',
-                '      ' + prop + ' = [__vb__].getterReturn',
+                '      ' + prop + ' = ' + PROTO + '.getterReturn',
                 '    End If',
                 '  End Property',
                 '  Public Property Let ' + prop + '(' + arg + ')',
-                '    [__vb__].setter ' + i + ', ' + arg,
+                '    ' + PROTO + '.setter ' + i + ', ME, ' + arg,
                 '  End Property',
                 '  Public Property Set ' + prop + '(' + arg + ')'
             );
             if (i) {
                 buffer.push(
-                    '    [__vb__].setter ' + i + ', ' + arg
+                    '    ' + PROTO + '.setter ' + i + ', ME, ' + arg
                 );
             } else {
-                // Initialize `__vb__` at index 0
+                // Initialize prototype at index 0
                 buffer.push(
-                    '    If isEmpty([__vb__]) Then',
-                    '      Set [__vb__] = ' + arg,
+                    '    If isEmpty(' + PROTO + ') Then',
+                    '      Set ' + PROTO + ' = ' + arg,
                     '    Else',
-                    '      [__vb__].setter ' + i + ', ' + arg,
+                    '      ' + PROTO + '.setter ' + i + ', ME, ' + arg,
                     '    End If'
                 );
             }
             buffer.push('  End Property');
-            storage.keys[i++] = key;
+            proto.keyMap[i++] = key;
         });
         buffer.push(
             'End Class',
-            'Function VbFactory' + uid + '()',
-            '  Set VbFactory' + uid + ' = New VbClass' + uid,
+            'Function VbFactory' + UID + '()',
+            '  Set VbFactory' + UID + ' = New VbClass' + UID,
             'End Function'
         );
         
         window.execScript(buffer.join('\r\n'), 'VBS');  // execute the VB script
-        var vbObj = window['VbFactory' + uid]();        // use the factory to create an object
-        vbObj[ storage.keys[0] ] = storage;             // initialize property `__vb__`
+        var vbObj = window['VbFactory' + UID]();        // use the factory to create an object
+        vbObj[ proto.keyMap[0] ] = proto;               // initialize prototype
         return vbObj;
     }
 
@@ -386,18 +401,13 @@
      * @returns {object}
      */
     function implementGetOwnPropertyDescriptor(obj, key) {
-        if (!hasOwnProperty(obj, key)) return;
+        if (!hasOwnProperty(obj, key)) {
+            return;
+        }
         
         // VB object
-        if (!('__vb__' in obj)) {
-            try {
-                obj.__vb__ = 0; // private VB property can't be assigned
-                delete obj.__vb__;
-            } catch(err) {
-                obj[key] = VbStorage;
-                var storage = obj[key];
-                return assign({}, storage.props[key]);
-            }
+        if (isVbObject(obj)) {
+            return assign({}, getVbPrototypeOf(obj).props[key]);
         }
         
         // Others
