@@ -32,8 +32,8 @@
         } catch(err) {
             var _defineProperty = Object[DEFINE_PROPERTY];
             Object[DEFINE_PROPERTIES] = function (obj, props) {
+                // Use the native method for `Element` object, `document` and `window`
                 if (obj instanceof Element || obj === document || obj === window) {
-                    // Use the native method for `Element` object, `document` and `window`
                     if (!isObject(props)) {
                         throwTypeError(DESCRIPTOR_NOT_OBJECT + props);
                     }
@@ -147,7 +147,7 @@
 
 
     /**
-     * Determine whether an object has a specified own property
+     * Check if key is an own property of object
      * @param {object} obj 
      * @param {string} key 
      * @returns {boolean}
@@ -160,7 +160,7 @@
     /**
      * The internal implementation of `Object.defineProperties`
      * @param {object} obj 
-     * @param {object} props 
+     * @param {object} props descriptor map
      * @returns {object}
      */
     function implementDefineProperties(obj, props) {
@@ -171,28 +171,27 @@
             throwTypeError(DESCRIPTOR_NOT_OBJECT + props);
         }
 
-        var newProps = Object[GET_OWN_PROPERTY_DESCRIPTORS](obj);
-        var isReactive, hasNewProperty;
-        forEach(props, function (key, desc) {
+        var isReactive, hasNewProperty, descMap = {};
+        forEach(props, function (key, obj) {
+            var desc = toPropertyDescriptor(obj);
+            descMap[key] = desc;
             if (!isReactive && (
                 GET in desc || SET in desc || !desc[WRITABLE] || !desc[CONFIGURABLE]
             )) {
                 isReactive = true;
             }
-            if (!hasOwnProperty(newProps, key)) {
+            if (!hasOwnProperty(obj, key)) {
                 hasNewProperty = true;
-                newProps[key] = {};
             }
-            mergeDescriptor(key, newProps[key], desc);
         });
 
         if (isVbObject(obj)) {
             if (!hasNewProperty) {
-                getVbPrototypeOf(obj).props = newProps;
+                mergePropertyDescriptors(getVbPrototypeOf(obj).props, descMap);
                 return obj;
             }
         } else if (!isReactive) {
-            forEach(props, function (key, desc) {
+            forEach(descMap, function (key, desc) {
                 if (VALUE in desc) {
                     obj[key] = desc[VALUE];
                 }
@@ -200,12 +199,50 @@
             return obj;
         }
         
-        return createVbObject(newProps);
+        props = Object[GET_OWN_PROPERTY_DESCRIPTORS](obj);
+        mergePropertyDescriptors(props, descMap);
+        return createVbObject(props);
     }
 
 
     /**
-     * Check if value is a VB object
+     * Convert to a standard descriptor
+     * @param {object} obj
+     * @returns {object}
+     */
+    function toPropertyDescriptor(obj) {
+        if (!isObject(obj)) {
+            throwTypeError(DESCRIPTOR_NOT_OBJECT + obj);
+        }
+
+        var desc = {};
+        if (ENUMERABLE in obj) desc[ENUMERABLE] = !!obj[ENUMERABLE];
+        if (CONFIGURABLE in obj) desc[CONFIGURABLE] = !!obj[CONFIGURABLE];
+        if (VALUE in obj) desc[VALUE] = obj[VALUE];
+        if (WRITABLE in obj) desc[WRITABLE] = !!obj[WRITABLE];
+        if (GET in obj) {
+            if (typeof obj[GET] !== 'function' && obj[GET] !== UNDEFINED) {
+                throwTypeError('Getter must be a function: ' + obj[GET]);
+            } else {
+                desc[GET] = obj[GET];
+            }
+        }
+        if (SET in obj) {
+            if (typeof obj[SET] !== 'function' && obj[SET] !== UNDEFINED) {
+                throwTypeError('Setter must be a function: ' + obj[SET]);
+            } else {
+                desc[SET] = obj[SET];
+            }
+        }
+        if ((GET in desc || SET in desc) && (VALUE in desc || WRITABLE in desc)) {
+            throwTypeError('Cannot both specify accessors and a value or writable attribute');
+        }
+        return desc;
+    }
+
+
+    /**
+     * Check if object is the type of custom VB Object
      * @param {object} obj
      * @returns {boolean}
      */
@@ -291,44 +328,57 @@
 
 
     /**
-     * Merge descriptor from source to target
-     * @param {string} prop 
-     * @param {object} target 
-     * @param {object} source 
+     * Merge every descriptor of source into target
+     * @param {object} target descriptor map
+     * @param {object} source descriptor map
      */
-    function mergeDescriptor(prop, target, source) {
-        if (target[CONFIGURABLE] === false) {
-            throwTypeError('Cannot redefine property: ' + prop);
-        }
-        if (!isObject(source)) {
-            throwTypeError(DESCRIPTOR_NOT_OBJECT + source);
-        }
+    function mergePropertyDescriptors(target, source) {
+        forEach(source, function (key, sDesc) {
+            var tDesc = target[key];
+            if (tDesc) {
+                // Validate
+                if (tDesc[CONFIGURABLE] === false && ((
+                    VALUE in tDesc && (
+                        sDesc[CONFIGURABLE] || GET in sDesc || SET in sDesc 
+                        || (!tDesc[WRITABLE] && VALUE in sDesc && sDesc[VALUE] !== tDesc[VALUE])
+                        || (!tDesc[WRITABLE] && sDesc[WRITABLE])
+                        || (ENUMERABLE in sDesc && sDesc[ENUMERABLE] !== tDesc[ENUMERABLE]) 
+                    )
+                ) || (
+                    GET in tDesc && (
+                        sDesc[CONFIGURABLE] || VALUE in sDesc || WRITABLE in sDesc 
+                        || (ENUMERABLE in sDesc && sDesc[ENUMERABLE] !== tDesc[ENUMERABLE])
+                    )
+                ))) {
+                    throwTypeError('Cannot redefine property: ' + key);
+                }
+            } else {
+                // Set default value
+                tDesc = {};
+                tDesc[VALUE] = UNDEFINED;
+                tDesc[WRITABLE] = false;
+                tDesc[ENUMERABLE] = false;
+                tDesc[CONFIGURABLE] = false;
+            }
 
-        if (VALUE in source || WRITABLE in source) {
-            if (GET in source || SET in source) {
-                throwTypeError('Cannot both specify accessors and a value or writable attribute');
+            // Merge
+            target[key] = sDesc;
+            if (VALUE in sDesc || WRITABLE in sDesc) {
+                if (!(VALUE in sDesc)) sDesc[VALUE] = tDesc[VALUE];
+                if (!(WRITABLE in sDesc)) sDesc[WRITABLE] = tDesc[WRITABLE];
+            } else if (GET in sDesc || SET in sDesc) {
+                if (!(GET in sDesc)) sDesc[GET] = tDesc[GET];
+                if (!(SET in sDesc)) sDesc[SET] = tDesc[SET];
+            } else if (VALUE in tDesc) {
+                sDesc[VALUE] = tDesc[VALUE];
+                sDesc[WRITABLE] = tDesc[WRITABLE];
+            } else {
+                sDesc[GET] = tDesc[GET];
+                sDesc[SET] = tDesc[SET];
             }
-            target[VALUE] = VALUE in source ? source[VALUE] : target[VALUE];
-            target[WRITABLE] = !!(WRITABLE in source ? source : target)[WRITABLE];
-            delete target[GET];
-            delete target[SET];
-        } else if (GET in source || SET in source) {
-            if (source[GET] !== UNDEFINED && typeof source[GET] !== 'function') {
-                throwTypeError('Getter must be a function: ' + source[GET]);
-            }
-            if (source[SET] !== UNDEFINED && typeof source[SET] !== 'function') {
-                throwTypeError('Setter must be a function: ' + source[SET]);
-            }
-            target[GET] = GET in source ? source[GET] : target[GET];
-            target[SET] = SET in source ? source[SET] : target[SET];
-            delete target[VALUE];
-            delete target[WRITABLE];
-        } else if (!(ENUMERABLE in target)) {
-            target[VALUE] = UNDEFINED;
-            target[WRITABLE] = false;
-        }
-        target[ENUMERABLE] = !!(ENUMERABLE in source ? source : target)[ENUMERABLE];
-        target[CONFIGURABLE] = !!(CONFIGURABLE in source ? source : target)[CONFIGURABLE];
+            if (!(ENUMERABLE in sDesc)) sDesc[ENUMERABLE] = tDesc[ENUMERABLE];
+            if (!(CONFIGURABLE in sDesc)) sDesc[CONFIGURABLE] = tDesc[CONFIGURABLE];
+        });
     }
 
 
@@ -405,7 +455,7 @@
             return;
         }
         
-        // VB object
+        // Custom VB object
         if (isVbObject(obj)) {
             return assign({}, getVbPrototypeOf(obj).props[key]);
         }
@@ -427,7 +477,7 @@
     
     
     /**
-     * Merge properties from source to target
+     * Merge evary own property of source into target
      * @param {object} target 
      * @param {object} source 
      * @returns {object}
