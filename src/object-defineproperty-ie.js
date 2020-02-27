@@ -1,6 +1,6 @@
 /**
  * Object.defineProperty Sham For IE
- * @version 2.0.0
+ * @version 3.0.0
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/object-defineproperty-ie}
@@ -13,7 +13,7 @@
     var GET_OWN_PROPERTY_DESCRIPTOR = 'getOwnPropertyDescriptor';
     var GET_OWN_PROPERTY_DESCRIPTORS = GET_OWN_PROPERTY_DESCRIPTOR + 's';   // => "getOwnPropertyDescriptors"
     var DESCRIPTOR_NOT_OBJECT = 'Property description must be an object: ';
-    var VB_PROTOTYPE = '__VB_PROTOTYPE__';
+    var INTERNAL_DATA = '__INTERNAL_DATA__';
     var ENUMERABLE = 'enumerable';
     var CONFIGURABLE = 'configurable';
     var VALUE = 'value';
@@ -171,9 +171,10 @@
             throwTypeError(DESCRIPTOR_NOT_OBJECT + props);
         }
 
+        // Check descriptors
         var isReactive, hasNewProperty, descMap = {};
-        forEach(props, function (key, obj) {
-            var desc = toPropertyDescriptor(obj);
+        forEach(props, function (key, val) {
+            var desc = toPropertyDescriptor(val);
             descMap[key] = desc;
             if (!isReactive && (
                 GET in desc || SET in desc || !desc[WRITABLE] || !desc[CONFIGURABLE]
@@ -187,14 +188,12 @@
 
         if (isVbObject(obj)) {
             if (!hasNewProperty) {
-                mergePropertyDescriptors(getVbPrototypeOf(obj).props, descMap);
+                mergePropertyDescriptors(getInternalDataOf(obj).props, descMap);
                 return obj;
             }
         } else if (!isReactive) {
             forEach(descMap, function (key, desc) {
-                if (VALUE in desc) {
-                    obj[key] = desc[VALUE];
-                }
+                obj[key] = VALUE in desc ? desc[VALUE] : obj[key];
             });
             return obj;
         }
@@ -247,10 +246,10 @@
      * @returns {boolean}
      */
     function isVbObject(obj) {
-        if (!(VB_PROTOTYPE in obj)) {
+        if (!(INTERNAL_DATA in obj)) {
             try {
-                obj[VB_PROTOTYPE] = 0;  // private VB property can't be assigned
-                delete obj[VB_PROTOTYPE];
+                obj[INTERNAL_DATA] = 0; // VB object can't add properties freely
+                delete obj[INTERNAL_DATA];
             } catch(err) {
                 return true;
             }
@@ -259,43 +258,50 @@
     }
 
 
+    // Exposed to global
+    window._isVbObject = isVbObject;
+
+
     /**
-     * Get the prototype of VB object
+     * Get the internal data of custom VB object
      * @param {object} vbObj 
      * @returns {object}
      */
-    function getVbPrototypeOf(vbObj) {
+    function getInternalDataOf(vbObj) {
         for (var key in vbObj) {
-            vbObj[key] = VbPrototype;
+            vbObj[key] = InternalData;
             return vbObj[key];
         }
     }
 
 
-    window._getVbPrototypeOf = getVbPrototypeOf;    // exposed to global
+    // Exposed to global
+    window._getInternalDataOf = getInternalDataOf;
 
 
     /**
-     * An internal slot
+     * The object to store internal data 
      * @constructor
      * @param {object} descriptors
      */
-    function VbPrototype(descriptors) {
+    function InternalData(descriptors) {
         this.props = descriptors;
         this.keyMap = {};
-        this.canGetProto = UNDEFINED;   // a flag used to judge whether return prototype
+        this.canGetData = UNDEFINED;    // a flag used to judge whether return internal data
         this.getterReturn = UNDEFINED;  // a variable that cache the getter return value
     }
 
 
     /**
+     * Getter
      * @param {number} index
+     * @param {object} ctx VB object
      * @returns {boolean}
      */
-    VbPrototype.prototype.getter = function (index, ctx) {
-        if (this.canGetProto === index) {
-            this.getterReturn = this;
-            this.canGetProto = UNDEFINED;
+    InternalData.prototype.getter = function (index, ctx) {
+        if (this.canGetData === index) {
+            this.getterReturn = this;       // return internal data
+            this.canGetData = UNDEFINED;    // reset flag
             return true;
         }
         var key = this.keyMap[index];
@@ -308,13 +314,15 @@
 
 
     /**
+     * Setter
      * @param {number} index
+     * @param {object} ctx VB object
      * @param {any} val
      */
-    VbPrototype.prototype.setter = function (index, ctx, val) {
-        // `VbPrototype` is used as a key to get prototype
-        if (val === VbPrototype) {
-            this.canGetProto = index;
+    InternalData.prototype.setter = function (index, ctx, val) {
+        // `InternalData` is used as a key
+        if (val === InternalData) {
+            this.canGetData = index;
             return;
         }
         var key = this.keyMap[index];
@@ -383,52 +391,52 @@
 
 
     /**
-     * VB object factory
+     * Custom VB object factory
      * @param {object} descriptors 
      * @returns {object} VB object 
      */
     function createVbObject(descriptors) {
         // Generate VB script
         var UID = window.setTimeout(Object);    // generate an unique id
-        var PROTO = '[' + VB_PROTOTYPE + ']';   // => "[__VB_PROTOTYPE__]"
+        var DATA = '[' + INTERNAL_DATA + ']';   // => "[__INTERNAL_DATA__]"
         var buffer = [
             'Class VbClass' + UID,
-            '  Private ' + PROTO
+            '  Private ' + DATA
         ];
         var i = 0;
-        var proto = new VbPrototype(descriptors);
+        var data = new InternalData(descriptors);
         forEach(descriptors, function (key) {
             var prop = '[' + key + ']';
             var arg = key === 'val' ? 'v' : 'val';
             buffer.push(
                 '  Public Property Get ' + prop,
-                '    If ' + PROTO + '.getter(' + i + ', ME) Then',
-                '      Set ' + prop + ' = ' + PROTO + '.getterReturn',
+                '    If ' + DATA + '.getter(' + i + ', ME) Then',
+                '      Set ' + prop + ' = ' + DATA + '.getterReturn',
                 '    Else',
-                '      ' + prop + ' = ' + PROTO + '.getterReturn',
+                '      ' + prop + ' = ' + DATA + '.getterReturn',
                 '    End If',
                 '  End Property',
                 '  Public Property Let ' + prop + '(' + arg + ')',
-                '    ' + PROTO + '.setter ' + i + ', ME, ' + arg,
+                '    ' + DATA + '.setter ' + i + ', ME, ' + arg,
                 '  End Property',
                 '  Public Property Set ' + prop + '(' + arg + ')'
             );
             if (i) {
                 buffer.push(
-                    '    ' + PROTO + '.setter ' + i + ', ME, ' + arg
+                    '    ' + DATA + '.setter ' + i + ', ME, ' + arg
                 );
             } else {
-                // Initialize prototype at index 0
+                // Initialize internal data at index 0
                 buffer.push(
-                    '    If isEmpty(' + PROTO + ') Then',
-                    '      Set ' + PROTO + ' = ' + arg,
+                    '    If isEmpty(' + DATA + ') Then',
+                    '      Set ' + DATA + ' = ' + arg,
                     '    Else',
-                    '      ' + PROTO + '.setter ' + i + ', ME, ' + arg,
+                    '      ' + DATA + '.setter ' + i + ', ME, ' + arg,
                     '    End If'
                 );
             }
             buffer.push('  End Property');
-            proto.keyMap[i++] = key;
+            data.keyMap[i++] = key;
         });
         buffer.push(
             'End Class',
@@ -439,7 +447,7 @@
         
         window.execScript(buffer.join('\r\n'), 'VBS');  // execute the VB script
         var vbObj = window['VbFactory' + UID]();        // use the factory to create an object
-        vbObj[ proto.keyMap[0] ] = proto;               // initialize prototype
+        vbObj[ data.keyMap[0] ] = data;                 // initialize internal data
         return vbObj;
     }
 
@@ -457,7 +465,7 @@
         
         // Custom VB object
         if (isVbObject(obj)) {
-            return assign({}, getVbPrototypeOf(obj).props[key]);
+            return assign({}, getInternalDataOf(obj).props[key]);
         }
         
         // Others
