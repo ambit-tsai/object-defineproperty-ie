@@ -406,6 +406,9 @@
         var i = 0;
         var data = new InternalData(descriptors);
         forEach(descriptors, function (key) {
+            if (key === INTERNAL_DATA) {
+                throwTypeError('Property "' + key + '" is the reserved word of "object-defineproperty-ie"');
+            }
             var prop = '[' + key + ']';
             var arg = key === 'val' ? 'v' : 'val';
             buffer.push(
