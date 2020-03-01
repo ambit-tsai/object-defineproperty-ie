@@ -22,6 +22,20 @@
     var SET = 'set';
 
 
+    /**
+     * Returns the names of the own properties of an object
+     * @param {object} obj
+     * @returns {string[]}
+     */
+    var getOwnPropertyNames = Object.getOwnPropertyNames || function (obj) {
+        var names = [];
+        forEach(obj, function (key) {
+            names.push(key);
+        });
+        return names;
+    };
+
+
     // Sham for `defineProperty`
     if (Object[DEFINE_PROPERTY]) {
         try {
@@ -100,12 +114,14 @@
     // Shim for `getOwnPropertyDescriptors`
     if (!Object[GET_OWN_PROPERTY_DESCRIPTORS]) {
         Object[GET_OWN_PROPERTY_DESCRIPTORS] = function (obj) {
-            var descriptors = {}, key, desc;
-            for (key in obj) {
-                desc = Object[GET_OWN_PROPERTY_DESCRIPTOR](obj, key);
-                if (desc) descriptors[key] = desc;
+            var names = getOwnPropertyNames(obj);
+            var descMap = {}
+            for (var i = names.length - 1; i >= 0; --i) {
+                var key = names[i];
+                var desc = Object[GET_OWN_PROPERTY_DESCRIPTOR](obj, key);
+                if (desc) descMap[key] = desc;
             }
-            return descriptors;
+            return descMap;
         };
     }
 
