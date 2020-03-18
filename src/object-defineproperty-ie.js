@@ -115,7 +115,7 @@
     if (!Object[GET_OWN_PROPERTY_DESCRIPTORS]) {
         Object[GET_OWN_PROPERTY_DESCRIPTORS] = function (obj) {
             var names = getOwnPropertyNames(obj);
-            var descMap = {}
+            var descMap = {};
             for (var i = names.length - 1; i >= 0; --i) {
                 var key = names[i];
                 var desc = Object[GET_OWN_PROPERTY_DESCRIPTOR](obj, key);
@@ -135,7 +135,9 @@
      * @returns {boolean}
      */
     function isObject(value) {
-        return value && (typeof value === 'object' || typeof value === 'function');
+        return value
+            ? typeof value === 'object' || typeof value === 'function'
+            : false;
     }
 
 
@@ -413,11 +415,11 @@
      */
     function createVbObject(descriptors) {
         // Generate VB script
-        var UID = window.setTimeout(Object);    // generate an unique id
-        var DATA = '[' + INTERNAL_DATA + ']';   // => "[__INTERNAL_DATA__]"
+        var UID = window.setTimeout(Object);        // generate an unique id
+        var INTERNAL = '[' + INTERNAL_DATA + ']';   // => "[__INTERNAL_DATA__]"
         var buffer = [
             'Class VbClass' + UID,
-            '  Private ' + DATA
+            '  Private ' + INTERNAL
         ];
         var i = 0;
         var data = new InternalData(descriptors);
@@ -429,28 +431,28 @@
             var arg = key === 'val' ? 'v' : 'val';
             buffer.push(
                 '  Public Property Get ' + prop,
-                '    If ' + DATA + '.getter(' + i + ', ME) Then',
-                '      Set ' + prop + ' = ' + DATA + '.getterReturn',
+                '    If ' + INTERNAL + '.getter(' + i + ', ME) Then',
+                '      Set ' + prop + ' = ' + INTERNAL + '.getterReturn',
                 '    Else',
-                '      ' + prop + ' = ' + DATA + '.getterReturn',
+                '      ' + prop + ' = ' + INTERNAL + '.getterReturn',
                 '    End If',
                 '  End Property',
                 '  Public Property Let ' + prop + '(' + arg + ')',
-                '    ' + DATA + '.setter ' + i + ', ME, ' + arg,
+                '    ' + INTERNAL + '.setter ' + i + ', ME, ' + arg,
                 '  End Property',
                 '  Public Property Set ' + prop + '(' + arg + ')'
             );
             if (i) {
                 buffer.push(
-                    '    ' + DATA + '.setter ' + i + ', ME, ' + arg
+                    '    ' + INTERNAL + '.setter ' + i + ', ME, ' + arg
                 );
             } else {
                 // Initialize internal data at index 0
                 buffer.push(
-                    '    If isEmpty(' + DATA + ') Then',
-                    '      Set ' + DATA + ' = ' + arg,
+                    '    If isEmpty(' + INTERNAL + ') Then',
+                    '      Set ' + INTERNAL + ' = ' + arg,
                     '    Else',
-                    '      ' + DATA + '.setter ' + i + ', ME, ' + arg,
+                    '      ' + INTERNAL + '.setter ' + i + ', ME, ' + arg,
                     '    End If'
                 );
             }
