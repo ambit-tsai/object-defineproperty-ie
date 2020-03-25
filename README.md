@@ -9,6 +9,7 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 #### Notice
 1. In IE8, program will use native method `defineProperty` or `getOwnPropertyDescriptor` for `Element` object, `doucment` and `window`
 1. In other case, `defineProperty` will return a new VB object
+1. For VB object, it will not create new VB object when modifying the existing descriptor
 1. VB object can't add or delete properties freely
 1. VB object doesn't have `[[Prototype]]` or `__proto__`
 1. The property name of VB object can't contain special character `]`
@@ -24,43 +25,51 @@ A `Object.defineProperty` sham based on **VBScript** for IE. It also provides `O
 ```html
 <script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var oldObj = Object.defineProperty({}, 'string', {
-        value: 'Ambit Tsai',
-        enumerable: true
-    });
-    // oldObj => {string: "Ambit Tsai"}
-
-    var newObj = Object.defineProperties(oldObj, {
-        getter: {
+    var temp;
+    var obj = Object.defineProperties({}, {
+        prop1: {
+            enumerable: true,
             get: function () {
-                return this.string;
+                return temp;
+            },
+            set: function (value) {
+                temp = value;
             }
         },
-        setter: {
-            set: function (value) {
-                this.string = value;
-            }
-        }
+        prop2: {
+            enumerable: true,
+            configurable: true,
+            value: 'Hello World'
+        },
     });
-    // newObj => {
-    //     getter: "Ambit Tsai",
-    //     setter: undefined,
-    //     string: "Ambit Tsai"
+    obj.prop = 123;
+    // obj => {
+    //     prop1: 123,
+    //     prop2: 'Hello World'
     // }
 
-    var desc = Object.getOwnPropertyDescriptor(newObj, 'string');
+    Object.defineProperty(obj, 'prop2', {
+        value: 'Ambit-Tsai'
+    });
+    // obj => {
+    //     prop1: 123,
+    //     prop2: 'Ambit-Tsai'
+    // }
+
+    var desc = Object.getOwnPropertyDescriptor(obj, 'prop2');
     // desc => {
-    //     configurable: false,
     //     enumerable: true,
-    //     value: "Ambit Tsai",
-    //     writable: false
+    //     configurable: true,
+    //     writable: false,
+    //     value: "Ambit-Tsai"
     // }
 </script>
 ```
 
 
 #### Testing
-1. Accessing `test/index.html` with browser
+1. Access <a href="https://ambit-tsai.github.io/object-defineproperty-ie/" target="_blank">GitHub Page</a> online
+1. Access `docs/index.html` locally
 1. Tested in IE6, IE7, IE8
 
 

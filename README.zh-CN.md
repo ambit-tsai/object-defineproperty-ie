@@ -9,6 +9,7 @@
 #### 注意
 1. 在 IE8 中，对于 `Element` 对象、`doucment` 与 `window` 将调用原生的 `defineProperty` 和 `getOwnPropertyDescriptor` 方法；
 1. 其他情况下，`defineProperty` 将会返回一个新的 VB 对象；
+1. 对于 VB 对象，修改现有属性的描述符不会生成新的 VB 对象；
 1. VB 对象不能随意增删属性
 1. VB 对象没有 `[[Prototype]]` 或 `__proto__`；
 1. VB 对象的属性名不能包含特殊字符 `]`；
@@ -24,43 +25,51 @@
 ```html
 <script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var oldObj = Object.defineProperty({}, 'string', {
-        value: 'Ambit Tsai',
-        enumerable: true
-    });
-    // oldObj => {string: "Ambit Tsai"}
-
-    var newObj = Object.defineProperties(oldObj, {
-        getter: {
+    var temp;
+    var obj = Object.defineProperties({}, {
+        prop1: {
+            enumerable: true,
             get: function () {
-                return this.string;
+                return temp;
+            },
+            set: function (value) {
+                temp = value;
             }
         },
-        setter: {
-            set: function (value) {
-                this.string = value;
-            }
-        }
+        prop2: {
+            enumerable: true,
+            configurable: true,
+            value: 'Hello World'
+        },
     });
-    // newObj => {
-    //     getter: "Ambit Tsai",
-    //     setter: undefined,
-    //     string: "Ambit Tsai"
+    obj.prop = 123;
+    // obj => {
+    //     prop1: 123,
+    //     prop2: 'Hello World'
     // }
 
-    var desc = Object.getOwnPropertyDescriptor(newObj, 'string');
+    Object.defineProperty(obj, 'prop2', {
+        value: 'Ambit-Tsai'
+    });
+    // obj => {
+    //     prop1: 123,
+    //     prop2: 'Ambit-Tsai'
+    // }
+
+    var desc = Object.getOwnPropertyDescriptor(obj, 'prop2');
     // desc => {
-    //     configurable: false,
     //     enumerable: true,
-    //     value: "Ambit Tsai",
-    //     writable: false
+    //     configurable: true,
+    //     writable: false,
+    //     value: "Ambit-Tsai"
     // }
 </script>
 ```
 
 
 #### 测试
-1. 使用浏览器访问 `test/index.html`
+1. 在线访问 <a href="https://ambit-tsai.github.io/object-defineproperty-ie/" target="_blank">GitHub Page</a>
+1. 本地访问 `docs/index.html`
 1. 已在IE6、IE7、IE8中进行测试
 
 
