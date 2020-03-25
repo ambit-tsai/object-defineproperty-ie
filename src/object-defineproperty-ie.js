@@ -1,6 +1,6 @@
 /**
  * Object.defineProperty Sham For IE
- * @version 3.0.0
+ * @version 3.1.0
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/object-defineproperty-ie}
@@ -13,7 +13,7 @@
     var GET_OWN_PROPERTY_DESCRIPTOR = 'getOwnPropertyDescriptor';
     var GET_OWN_PROPERTY_DESCRIPTORS = GET_OWN_PROPERTY_DESCRIPTOR + 's';   // => "getOwnPropertyDescriptors"
     var DESCRIPTOR_NOT_OBJECT = 'Property description must be an object: ';
-    var INTERNAL_DATA = '__INTERNAL_DATA__';
+    var INTERNAL_NAME = '__INTERNAL__';
     var ENUMERABLE = 'enumerable';
     var CONFIGURABLE = 'configurable';
     var VALUE = 'value';
@@ -23,7 +23,7 @@
 
 
     /**
-     * Returns the names of the own properties of an object
+     * Hack `Object.getOwnPropertyNames`
      * @param {object} obj
      * @returns {string[]}
      */
@@ -36,7 +36,7 @@
     };
 
 
-    // Sham for `defineProperty`
+    // Sham for `Object.defineProperty`
     if (Object[DEFINE_PROPERTY]) {
         try {
             // In IE 8, `Object.defineProperty` is only effective on `Element` object, 
@@ -74,7 +74,7 @@
     }
 
 
-    // Sham for `defineProperties`
+    // Sham for `Object.defineProperties`
     if (!Object[DEFINE_PROPERTIES]) {
         if (/\[native code\]/.test(Object[DEFINE_PROPERTY].toString())) {
             // Use the native method `Object.defineProperty`
@@ -93,7 +93,7 @@
     }
 
 
-    // Sham for `getOwnPropertyDescriptor`
+    // Sham for `Object.getOwnPropertyDescriptor`
     if (!Object[GET_OWN_PROPERTY_DESCRIPTOR]) {
         Object[GET_OWN_PROPERTY_DESCRIPTOR] = implementGetOwnPropertyDescriptor;
     } else if (Object[GET_OWN_PROPERTY_DESCRIPTOR](window, CONFIGURABLE + CONFIGURABLE)) {
@@ -111,7 +111,7 @@
     }
 
 
-    // Shim for `getOwnPropertyDescriptors`
+    // Shim for `Object.getOwnPropertyDescriptors`
     if (!Object[GET_OWN_PROPERTY_DESCRIPTORS]) {
         Object[GET_OWN_PROPERTY_DESCRIPTORS] = function (obj) {
             var names = getOwnPropertyNames(obj);
@@ -153,7 +153,7 @@
     /**
      * Execute a provided function once for each property
      * @param {object} obj 
-     * @param {function} fn 
+     * @param {(key: string, value: any) => undefined} fn 
      */
     function forEach(obj, fn) {
         for (var key in obj) {
@@ -178,7 +178,7 @@
     /**
      * The internal implementation of `Object.defineProperties`
      * @param {object} obj 
-     * @param {object} props descriptor map
+     * @param {object} props descriptors
      * @returns {object}
      */
     function implementDefineProperties(obj, props) {
@@ -206,7 +206,7 @@
 
         if (isVbObject(obj)) {
             if (!hasNewProperty) {
-                mergePropertyDescriptors(getInternalDataOf(obj).props, descMap);
+                mergePropertyDescriptors(getVbInternalOf(obj).props, descMap);
                 return obj;
             }
         } else if (!isReactive) {
@@ -225,7 +225,7 @@
     /**
      * Convert to a standard descriptor
      * @param {object} obj
-     * @returns {object}
+     * @returns {object} descriptor
      */
     function toPropertyDescriptor(obj) {
         if (!isObject(obj)) {
@@ -264,10 +264,10 @@
      * @returns {boolean}
      */
     function isVbObject(obj) {
-        if (!(INTERNAL_DATA in obj)) {
+        if (!(INTERNAL_NAME in obj)) {
             try {
-                obj[INTERNAL_DATA] = 0; // VB object can't add properties freely
-                delete obj[INTERNAL_DATA];
+                obj[INTERNAL_NAME] = 0; // VB object can't add properties freely
+                delete obj[INTERNAL_NAME];
             } catch(err) {
                 return true;
             }
@@ -285,16 +285,16 @@
      * @param {object} vbObj 
      * @returns {object}
      */
-    function getInternalDataOf(vbObj) {
+    function getVbInternalOf(vbObj) {
         for (var key in vbObj) {
-            vbObj[key] = InternalData;
+            vbObj[key] = Internal;
             return vbObj[key];
         }
     }
 
 
     // Exposed to global
-    window._getInternalDataOf = getInternalDataOf;
+    window._getVbInternalOf = getVbInternalOf;
 
 
     /**
@@ -302,7 +302,7 @@
      * @constructor
      * @param {object} descriptors
      */
-    function InternalData(descriptors) {
+    function Internal(descriptors) {
         this.props = descriptors;
         this.keyMap = {};
         this.canGetData = UNDEFINED;    // a flag used to judge whether return internal data
@@ -312,16 +312,17 @@
 
     /**
      * Getter
-     * @param {number} index
-     * @param {object} ctx VB object
-     * @returns {boolean}
+     * @param {number} index the index of key
+     * @param {object} ctx context
+     * @returns {boolean} is `getterReturn` an object
      */
-    InternalData.prototype.getter = function (index, ctx) {
+    Internal.prototype.getter = function (index, ctx) {
         if (this.canGetData === index) {
             this.getterReturn = this;       // return internal data
             this.canGetData = UNDEFINED;    // reset flag
             return true;
         }
+
         var key = this.keyMap[index];
         var desc = this.props[key];
         this.getterReturn = desc[GET] 
@@ -333,16 +334,17 @@
 
     /**
      * Setter
-     * @param {number} index
-     * @param {object} ctx VB object
-     * @param {any} val
+     * @param {number} index the index of key
+     * @param {object} ctx context
+     * @param {any} val value
      */
-    InternalData.prototype.setter = function (index, ctx, val) {
-        // `InternalData` is used as a key
-        if (val === InternalData) {
+    Internal.prototype.setter = function (index, ctx, val) {
+        // Constructor `Internal` is used as a key
+        if (val === Internal) {
             this.canGetData = index;
             return;
         }
+
         var key = this.keyMap[index];
         var desc = this.props[key];
         if (desc[WRITABLE]) {
@@ -416,15 +418,15 @@
     function createVbObject(descriptors) {
         // Generate VB script
         var UID = window.setTimeout(Object);        // generate an unique id
-        var INTERNAL = '[' + INTERNAL_DATA + ']';   // => "[__INTERNAL_DATA__]"
+        var INTERNAL = '[' + INTERNAL_NAME + ']';   // => "[__INTERNAL__]"
         var buffer = [
             'Class VbClass' + UID,
             '  Private ' + INTERNAL
         ];
         var i = 0;
-        var data = new InternalData(descriptors);
+        var internal = new Internal(descriptors);
         forEach(descriptors, function (key) {
-            if (key === INTERNAL_DATA) {
+            if (key === INTERNAL_NAME) {
                 throwTypeError('Property "' + key + '" is the reserved word of "object-defineproperty-ie"');
             }
             var prop = '[' + key + ']';
@@ -447,7 +449,7 @@
                     '    ' + INTERNAL + '.setter ' + i + ', ME, ' + arg
                 );
             } else {
-                // Initialize internal data at index 0
+                // Initialize `__INTERNAL__` at index 0
                 buffer.push(
                     '    If isEmpty(' + INTERNAL + ') Then',
                     '      Set ' + INTERNAL + ' = ' + arg,
@@ -457,7 +459,7 @@
                 );
             }
             buffer.push('  End Property');
-            data.keyMap[i++] = key;
+            internal.keyMap[i++] = key;
         });
         buffer.push(
             'End Class',
@@ -468,7 +470,7 @@
         
         window.execScript(buffer.join('\r\n'), 'VBS');  // execute the VB script
         var vbObj = window['VbFactory' + UID]();        // use the factory to create an object
-        vbObj[ data.keyMap[0] ] = data;                 // initialize internal data
+        vbObj[ internal.keyMap[0] ] = internal;         // initialize internal internal
         return vbObj;
     }
 
@@ -486,7 +488,7 @@
         
         // Custom VB object
         if (isVbObject(obj)) {
-            return assign({}, getInternalDataOf(obj).props[key]);
+            return objectAssign({}, getVbInternalOf(obj).props[key]);
         }
         
         // Others
@@ -506,12 +508,12 @@
     
     
     /**
-     * Merge evary own property of source into target
+     * Hack `Object.assign`
      * @param {object} target 
      * @param {object} source 
      * @returns {object}
      */
-    function assign(target, source) {
+    function objectAssign(target, source) {
         forEach(source, function (key, value) {
             target[key] = value;
         });
