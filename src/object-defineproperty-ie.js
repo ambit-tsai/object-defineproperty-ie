@@ -190,35 +190,27 @@
         }
 
         // Check descriptors
-        var isReactive, hasNewProperty, descMap = {};
-        forEach(props, function (key, val) {
-            var desc = toPropertyDescriptor(val);
+        var names = getOwnPropertyNames(props);
+        var descMap = {}, hasNewProperty;
+        for (var i = names.length - 1; i >= 0; --i) {
+            var key = names[i];
+            var desc = toPropertyDescriptor(props[key]);
             descMap[key] = desc;
-            if (!isReactive && (
-                GET in desc || SET in desc || !desc[WRITABLE] || !desc[CONFIGURABLE]
-            )) {
-                isReactive = true;
-            }
             if (!hasOwnProperty(obj, key)) {
                 hasNewProperty = true;
             }
-        });
-
-        if (isVbObject(obj)) {
-            if (!hasNewProperty) {
-                mergePropertyDescriptors(getVbInternalOf(obj).props, descMap);
-                return obj;
-            }
-        } else if (!isReactive) {
-            forEach(descMap, function (key, desc) {
-                obj[key] = VALUE in desc ? desc[VALUE] : obj[key];
-            });
-            return obj;
         }
-        
-        props = Object[GET_OWN_PROPERTY_DESCRIPTORS](obj);
-        mergePropertyDescriptors(props, descMap);
-        return createVbObject(props);
+
+        if (!names.length && !getOwnPropertyNames(obj).length) {
+            return obj;
+        } else if (isVbObject(obj) && !hasNewProperty) {
+            mergePropertyDescriptors(getVbInternalOf(obj).props, descMap);
+            return obj;
+        } else {
+            props = Object[GET_OWN_PROPERTY_DESCRIPTORS](obj);
+            mergePropertyDescriptors(props, descMap);
+            return createVbObject(props);
+        }
     }
 
 
